@@ -280,6 +280,9 @@ async def head_root():
 
 @app.post("/ask")
 async def ask_ai(request: Request):
+    import time
+    total_start = time.perf_counter()
+
     data = await request.json()
     question = (data.get("question") or "").strip()
     language = (data.get("language") or "nl").lower()
@@ -290,6 +293,96 @@ async def ask_ai(request: Request):
             content={"error": "Geen vraag ontvangen."},
         )
 
+    print("\n========== NEW REQUEST ==========")
+    print("Vraag:", question)
+
+    # ---------------------------------------------------------
+    # 1. IDENTITY ORIGIN
+    # ---------------------------------------------------------
+    t0 = time.perf_counter()
+    identity_answer = try_identity_origin_answer(question, language)
+    t1 = time.perf_counter()
+    print("[Perf] Identity-origin:", f"{t1 - t0:.4f} sec")
+
+    if identity_answer:
+        total_end = time.perf_counter()
+        print("[Perf] TOTAL REQUEST:", f"{total_end - total_start:.4f} sec")
+        return {
+            "answer": identity_answer,
+            "output": [],
+            "source": "identity_origin",
+            "kb_used": False,
+            "sql_used": False,
+            "sql_score": None,
+            "hints": {}
+        }
+
+    # ---------------------------------------------------------
+    # 2. SQL KNOWLEDGE
+    # ---------------------------------------------------------
+    t2 = time.perf_counter()
+    sql_match = search_sql_knowledge(question)
+    t3 = time.perf_counter()
+    print("[Perf] SQL Search:", f"{t3 - t2:.4f} sec")
+
+    if sql_match and sql_match["score"] >= 60:
+        total_end = time.perf_counter()
+        print("[Perf] TOTAL REQUEST:", f"{total_end - total_start:.4f} sec")
+        return {
+            "answer": sql_match["answer"],
+            "output": [],
+            "source": "sql",
+            "kb_used": False,
+            "sql_used": True,
+            "sql_score": sql_match["score"],
+            "hints": {}
+        }
+
+    # ---------------------------------------------------------
+    # 3. JSON KNOWLEDGE (STATIC KB)
+    # ---------------------------------------------------------
+    t4 = time.perf_counter()
+    try:
+        kb_answer = match_question(question, KNOWLEDGE_ENTRIES)
+    except Exception:
+        kb_answer = None
+    t5 = time.perf_counter()
+    print("[Perf] JSON KB:", f"{t5 - t4:.4f} sec")
+
+    # ---------------------------------------------------------
+    # 4. HINT DETECTION
+    # ---------------------------------------------------------
+    t6 = time.perf_counter()
+    hints = detect_hints(question)
+    t7 = time.perf_counter()
+    print("[Perf] Hint detection:", f"{t7 - t6:.4f} sec")
+
+    # ---------------------------------------------------------
+    # 5. LLM CALL
+    # ---------------------------------------------------------
+    t8 = time.perf_counter()
+    final_answer, raw_output = call_yellowmind_llm(
+        question, language, kb_answer, sql_match, hints
+    )
+    t9 = time.perf_counter()
+    print("[Perf] OpenAI LLM:", f"{t9 - t8:.4f} sec")
+
+    # ---------------------------------------------------------
+    # 6. TOTAL TIME
+    # ---------------------------------------------------------
+    total_end = time.perf_counter()
+    print("[Perf] TOTAL REQUEST:", f"{total_end - total_start:.4f} sec")
+    print("=================================\n")
+
+    return {
+        "answer": final_answer,
+        "output": raw_output,
+        "source": "yellowmind_llm",
+        "kb_used": bool(kb_answer),
+        "sql_used": bool(sql_match),
+        "sql_score": sql_match["score"] if sql_match else None,
+        "hints": hints
+    }
     # QUICK IDENTITY
     identity_answer = try_identity_origin_answer(question, language)
     if identity_answer:
