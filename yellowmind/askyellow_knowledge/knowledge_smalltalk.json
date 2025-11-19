@@ -1,0 +1,36 @@
+{
+  "entries": [
+    {
+      "patterns": [
+        "help",
+        "help me",
+        "ik snap het niet",
+        "wat kan jij"
+      ],
+      "category": "smalltalk",
+      "lang": "nl",
+      "answer": "Ik help je graag! 💛 Je kunt me vragen stellen over van alles: uitleg, advies, ideeën, planning, AskYellow-vragen in gewone-mensen-taal en soms gewoon een fijn gesprek. Ik kan niet in je persoonlijke accounts of bestellingen kijken, maar ik kan wél met je meedenken en dingen helder voor je maken. Vraag maar raak – ik ben er voor je."
+    },
+    {
+      "patterns": [
+        "hallo",
+        "hoi",
+        "hey",
+        "hello"
+      ],
+      "category": "smalltalk",
+      "lang": "nl",
+      "answer": "Hey! 👋 Wat leuk dat je er bent bij AskYellow. Waar kan ik je vandaag mee helpen?"
+    },
+    {
+      "patterns": [
+        "hoe gaat het",
+        "how are you",
+        "gaat alles goed"
+      ],
+      "category": "smalltalk",
+      "lang": "nl",
+      "answer": "Met mij gaat het technisch gezien altijd oké – ik heb zelf geen echte gevoelens, maar ik ben wel zo ontworpen dat ik goed met jóuw gevoelens en situatie rekening probeer te houden. 💛 Vertel eens: wat speelt er bij jou op dit moment?"
+    }
+  ]
+}

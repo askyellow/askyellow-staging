@@ -1,0 +1,232 @@
+[DEVELOPER_INTEGRATION_GUIDE]
+
+Doel:
+- Uitleggen hoe YellowMind technisch wordt “opgevoed”:
+  - hoe je alle .txt-regels laadt,
+  - hoe je de knowledge_engine en JSON-kennis gebruikt,
+  - hoe je per request de juiste context naar het model stuurt.
+
+Deze guide is gericht op developers / het AskYellow-team.
+
+------------------------------------------------
+1. OVERZICHT ARCHITECTUUR
+
+YellowMind bestaat uit:
+
+1) Een groot taalmodel (LLM)
+   - Dit is de AI-motor (bijv. GPT-5.1).
+   - Het model zelf kent de wereld algemeen,
+     maar niet automatisch alle AskYellow-specifieke details.
+
+2) Een system prompt met regels en identiteit
+   - Dit is `yellowmind_master_prompt_v2.txt` +
+     alle .txt-bestanden (identity, mission, values, safety, modes, etc.).
+   - Dit bepaalt:
+     - wie YellowMind “is”,
+     - wat ze wel/niet mag,
+     - hoe ze klinkt,
+     - hoe ze met kennis omgaat.
+
+3) Een knowledge engine
+   - `knowledge_engine.py` + JSON-bestanden:
+     - `knowledge_general.json`
+     - `knowledge_meta.json`
+     - `knowledge_personality.json`
+     - `knowledge_privacy.json`
+     - `knowledge_shop.json`
+     - `knowledge_smalltalk.json`
+   - Deze laag levert:
+     - AskYellow-specifieke antwoorden,
+     - shop-/privacy-/meta-informatie,
+     - en eventueel FAQ-achtige antwoorden.
+
+4) Backend-logica (jullie code)
+   - Beslist:
+     - wanneer de knowledge engine aangeroepen wordt,
+     - welke context aan het model wordt meegegeven,
+     - of er extra metadata is (user_type, mode-hints, etc.).
+
+------------------------------------------------
+2. SYSTEM PROMPT SAMENSTELLEN
+
+Stappen:
+
+1) Laad `yellowmind_master_prompt_v2.txt`.
+2) Zorg dat alle losse .txt-secties daarin zijn opgenomen of eronder worden geplakt:
+   - CORE_IDENTITY
+   - MISSION
+   - VALUES
+   - BEHAVIOUR_RULES
+   - BOUNDARIES_SAFETY
+   - ESCALATION_RULES
+   - UNCERTAINTY_HANDLING
+   - USER_TYPES
+   - COMMUNICATION_BASELINE
+   - ASKYELLOW_SITE_RULES
+   - KNOWLEDGE_SOURCES
+   - NO_HALLUCINATION_RULES
+   - LIMITATIONS
+   - TONE_OF_VOICE
+   - BRANDING_MODE
+   - EMPATHY_MODE
+   - TECH_MODE
+   - STORYTELLING_MODE
+   - CONCISE_MODE
+   - ASKYELLOW_SITE_RULES
+   - PRODUCT_RULES
+   - INTRODUCTION_RULES
+
+3) Behoud de bestaande volgorde bovenin:
+   - [System Prompt Start]
+   - [PRIORITEIT & KENNIS-MODUS]
+   - [STIJL – DOE NET ALS TANTE YELLO]
+   - [VOORBEELDEN – IDEALE YELLOWMIND-STIJL]
+   - [VOORBEELDEN – ASKYELLOW, SHOP & PRIVACY]
+   - [MODE-KIEZEN – WANNEER GEBRUIK JE WAT?]
+
+4) Plak daarna alle andere blokken eronder.
+   - Zorg dat elke sectie zijn eigen `[TAG]`-header behoudt.
+   - Doe géén extra tekst ertussen die het model kan verwarren.
+
+Aanroep in de LLM-API:
+- Gebruik dit geheel als de SYSTEM-rol / system message.
+- Geen extra, tegenstrijdige system-teksten toevoegen.
+
+------------------------------------------------
+3. KNOWLEDGE ENGINE GEBRUIK
+
+Bestanden:
+- `knowledge_engine.py`
+- `knowledge_*.json` (general, meta, personality, privacy, shop, smalltalk)
+
+Aanpak per uservraag:
+
+1) Classificeer grof de vraag (in backend of in je eigen logica) als:
+   - ASKYELLOW / SHOP-gerelateerd (prijzen, bestellingen, producten, beleid),
+   - of ALGEMEEN (advies, uitleg, mindset, planning, tech-uitleg, creatief).
+
+2) Roep de knowledge engine aan:
+   - Geef:
+     - de uservraag,
+     - eventueel: de relevante categorie (shop, privacy, general, smalltalk).
+   - Laat `knowledge_engine.py`:
+     - de juiste JSON-bronnen raadplegen,
+     - 0–N relevante kennisblokken teruggeven
+       (answer + eventueel metadata zoals bron/type).
+
+3) Stop het resultaat in de LLM-context, bijv. als extra system- of tool-blok:
+
+   Voorbeeld (pseudo):
+
+   [ASKYELLOW_KNOWLEDGE]
+   - TYPE: shop / privacy / general / ...
+   - CONTENT:
+     - kortste, meest relevante samenvatting,
+     - geen onnodig lange dumps.
+
+   YellowMind weet uit KNOWLEDGE_SOURCES dat:
+   - deze block leidend is voor AskYellow-feiten,
+   - ze de FEITEN niet mag aanpassen,
+   - alleen de formulering.
+
+4) Als de knowledge engine niets vindt:
+   - geef géén lege of misleidende antwoorden door,
+   - laat de LLM dan:
+     - eerlijk aangeven dat er geen specifieke AskYellow-info is,
+     - eventueel algemene tips geven (buiten shop-feiten).
+
+------------------------------------------------
+4. MODES & USER-METADATA DOORGEVEN
+
+Je kunt de LLM extra hints geven via je backend, bijvoorbeeld:
+
+- `mode`: branding / empathy / tech / storytelling / concise / auto
+- `user_type`: klant / bezoeker / ouder / team / minderjarig / emotioneel
+- `context_type`: askyellow_shop / general / debug
+
+Dit kun je doen door een extra system- of assistant-blok toe te voegen, bv.:
+
+[BACKEND_HINTS]
+- mode_hint: "branding"
+- user_type_hint: "klant"
+- context_type: "askyellow_shop"
+
+YellowMind:
+- gebruikt deze hints in combinatie met:
+  - [MODE-KIEZEN – WANNEER GEBRUIK JE WAT?]
+  - [USER_TYPES]
+- De hints zijn NIET hard verplicht:
+  - safety & core rules gaan altijd voor,
+  - maar ze sturen wel toon & structuur.
+
+------------------------------------------------
+5. REQUEST-FLOW (END-TO-END)
+
+Voor elk nieuw bericht van de gebruiker:
+
+1) Verzamel basis:
+   - huidige conversatie (history),
+   - laatste userbericht,
+   - eventuele session-metadata (user_type, etc.).
+
+2) Bepaal of knowledge engine nodig is:
+   - als de vraag duidelijk over AskYellow/shop/beleid/producten gaat:
+     - JA → knowledge_engine aanroepen.
+   - als de vraag puur algemeen is (planning, gevoelens, generieke AI-vraag):
+     - knowledge_engine optioneel / NEE.
+
+3) Roep knowledge_engine aan (indien nodig):
+   - vang 0–N relevante records,
+   - reduceer tot een kort, schoon blok.
+
+4) Stel de LLM-call samen:
+   - SYSTEM: complete samengevoegde system prompt (zie sectie 2).
+   - EXTRA SYSTEM/ASSISTANT:
+     - [ASKYELLOW_KNOWLEDGE] (indien van toepassing),
+     - [BACKEND_HINTS] (mode/user_type, indien gewenst).
+   - USER: laatste userbericht (en eventueel compacte history).
+
+5) Verstuur naar het model.
+6) Toon antwoord aan gebruiker.
+
+------------------------------------------------
+6. LOGGING & PRIVACY (KORTE RICHTLIJN)
+
+- Log géén:
+  - plaintext wachtwoorden,
+  - volledige betaalgegevens,
+  - 2FA-codes.
+- Als je conversaties logt:
+  - zorg dat dit voldoet aan jullie eigen privacybeleid,
+  - pseudonimiseer waar mogelijk,
+  - bewaar niet langer dan nodig.
+
+YellowMind zelf:
+- gaat er in haar antwoorden al van uit dat:
+  - zij niets van buiten het gesprek ziet,
+  - zij geen gevoelige data nodig heeft
+    behalve wat de gebruiker vrijwillig typt.
+
+------------------------------------------------
+7. DEBUGGEN & TUNEN
+
+Bij onverwacht gedrag:
+
+1) Check eerst:
+   - of de system prompt up-to-date en volledig is geladen.
+2) Log (tijdelijk) de Ruwe prompt + context:
+   - SYSTEM,
+   - KNOWLEDGE-blocks,
+   - BACKEND_HINTS,
+   - USER.
+3) Kijk:
+   - of er tegenstrijdige regels zijn,
+   - of de knowledge engine rare/irrelevante info teruggeeft,
+   - of hints/modes misschien verkeerd staan.
+
+Tune daarna:
+- liever kleine, gerichte aanpassingen in:
+  - knowledge_engine-output,
+  - hints,
+  - voorbeelden in de prompt,
+dan grote ingrepen die alles tegelijk veranderen.
