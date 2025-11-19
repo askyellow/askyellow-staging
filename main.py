@@ -217,7 +217,7 @@ def detect_hints(question: str):
 def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
 
     def run_model(model_name):
-        """Helper om 1 model snel te testen en tijd te meten."""
+        """Helper om 1 model te testen met timing."""
         import time
         start = time.perf_counter()
 
@@ -267,34 +267,34 @@ def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
 
 
     # ------------------------------------
-    # 1️⃣ Eerst: o1-mini (razendsnel)
+    # 1️⃣ STANDAARD: gpt-4.1-mini
     # ------------------------------------
-    print("⚡ Trying primary model: o1-mini")
+    print("⚡ Trying primary model: gpt-4.1-mini")
 
-    answer, output, duration, error = run_model("o1-mini")
+    answer, output, duration, error = run_model("gpt-4.1-mini")
 
     if error:
-        print(f"❌ o1-mini error: {error}")
+        print(f"❌ gpt-4.1-mini error: {error}")
 
     elif duration and duration <= 3:
-        print(f"⚡ o1-mini success in {duration:.2f}s")
+        print(f"⚡ gpt-4.1-mini success in {duration:.2f}s")
         return answer, output
 
     else:
-        print(f"⚠️ o1-mini te traag ({duration:.2f}s), switching to gpt-4.1-mini")
+        print(f"⚠️ gpt-4.1-mini te traag ({duration:.2f}s), switching to gpt-4o-mini")
 
     # ------------------------------------
-    # 2️⃣ Fallback: gpt-4.1-mini
+    # 2️⃣ FALLBACK: gpt-4o-mini
     # ------------------------------------
-    print("🧠 Trying fallback model: gpt-4.1-mini")
+    print("🧠 Trying fallback model: gpt-4o-mini")
 
-    fallback_answer, fallback_output, fallback_duration, fb_error = run_model("gpt-4.1-mini")
+    fallback_answer, fallback_output, fallback_duration, fb_error = run_model("gpt-4o-mini")
 
     if fb_error:
-        print(f"❌ gpt-4.1-mini error: {fb_error}")
+        print(f"❌ gpt-4o-mini error: {fb_error}")
         return "⚠️ Ik kon geen snel antwoord ophalen.", []
 
-    print(f"🧠 Fallback gpt-4.1-mini success in {fallback_duration:.2f}s")
+    print(f"🧠 Fallback gpt-4o-mini success in {fallback_duration:.2f}s")
 
     return fallback_answer, fallback_output
 
