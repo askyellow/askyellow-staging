@@ -215,52 +215,88 @@ def detect_hints(question: str):
 # =============================================================
 
 def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
-    messages = []
 
-    messages.append({"role": "system", "content": SYSTEM_PROMPT})
+    def run_model(model_name):
+        """Helper om 1 model snel te testen en tijd te meten."""
+        import time
+        start = time.perf_counter()
 
-    knowledge_blocks = []
+        messages = []
+        messages.append({"role": "system", "content": SYSTEM_PROMPT})
 
-    if kb_answer:
-        knowledge_blocks.append("STATIC_KB:\n" + kb_answer)
+        knowledge_blocks = []
 
-    if sql_match:
-        knowledge_blocks.append(
-            "SQL_KB:\n"
-            f"Vraag: {sql_match['question']}\n"
-            f"Antwoord: {sql_match['answer']}\n"
-            f"Score: {sql_match['score']}"
-        )
+        if kb_answer:
+            knowledge_blocks.append("STATIC_KB:\n" + kb_answer)
 
-    if knowledge_blocks:
-        messages.append({"role": "system", "content": "[ASKYELLOW_KNOWLEDGE]\n" + "\n\n".join(knowledge_blocks)})
+        if sql_match:
+            knowledge_blocks.append(
+                "SQL_KB:\n"
+                f"Vraag: {sql_match['question']}\n"
+                f"Antwoord: {sql_match['answer']}\n"
+                f"Score: {sql_match['score']}"
+            )
 
-    if hints:
-        hint_text = "\n".join([f"- {k}: {v}" for k,v in hints.items() if v])
-        messages.append({"role": "system", "content": "[BACKEND_HINTS]\n" + hint_text})
+        if knowledge_blocks:
+            messages.append({"role": "system", "content": "[ASKYELLOW_KNOWLEDGE]\n" + "\n\n".join(knowledge_blocks)})
 
-    messages.append({"role": "user", "content": question})
+        if hints:
+            hint_text = "\n".join([f"- {k}: {v}" for k,v in hints.items() if v])
+            messages.append({"role": "system", "content": "[BACKEND_HINTS]\n" + hint_text})
 
-    selected_model = YELLOWMIND_MODEL
-    print(f"🤖 Model geselecteerd: {selected_model}")
+        messages.append({"role": "user", "content": question})
 
-    # OpenAI Responses API
-    llm_response = client.responses.create(
-        model=selected_model,
-        input=messages
-    )
+        try:
+            resp = client.responses.create(
+                model=model_name,
+                input=messages
+            )
 
-    # Extract actual answer
-    try:
-        # output[1] = assistant message block (o3 structure)
-        assistant_block = llm_response.output[1]
-        answer_text = assistant_block.content[0].text
-    except Exception as e:
-        print("❌ EXTRACT ERROR:", e)
-        answer_text = "⚠️ Ik kon het antwoord niet verwerken."
+            elapsed = time.perf_counter() - start
 
-    return answer_text, llm_response.output
+            try:
+                block = resp.output[1]
+                answer = block.content[0].text
+            except Exception:
+                answer = None
 
+            return answer, resp.output, elapsed, None
+
+        except Exception as e:
+            return None, None, None, e
+
+
+    # ------------------------------------
+    # 1️⃣ Eerst: o1-mini (razendsnel)
+    # ------------------------------------
+    print("⚡ Trying primary model: o1-mini")
+
+    answer, output, duration, error = run_model("o1-mini")
+
+    if error:
+        print(f"❌ o1-mini error: {error}")
+
+    elif duration and duration <= 3:
+        print(f"⚡ o1-mini success in {duration:.2f}s")
+        return answer, output
+
+    else:
+        print(f"⚠️ o1-mini te traag ({duration:.2f}s), switching to gpt-4.1-mini")
+
+    # ------------------------------------
+    # 2️⃣ Fallback: gpt-4.1-mini
+    # ------------------------------------
+    print("🧠 Trying fallback model: gpt-4.1-mini")
+
+    fallback_answer, fallback_output, fallback_duration, fb_error = run_model("gpt-4.1-mini")
+
+    if fb_error:
+        print(f"❌ gpt-4.1-mini error: {fb_error}")
+        return "⚠️ Ik kon geen snel antwoord ophalen.", []
+
+    print(f"🧠 Fallback gpt-4.1-mini success in {fallback_duration:.2f}s")
+
+    return fallback_answer, fallback_output
 
 # =============================================================
 # 7. ENDPOINTS
