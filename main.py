@@ -233,10 +233,13 @@ def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
         )
 
     if knowledge_blocks:
-        messages.append({"role": "system", "content": "[ASKYELLOW_KNOWLEDGE]\n" + "\n\n".join(knowledge_blocks)})
+        messages.append({
+            "role": "system",
+            "content": "[ASKYELLOW_KNOWLEDGE]\n" + "\n\n".join(knowledge_blocks)
+        })
 
     if hints:
-        hint_text = "\n".join([f"- {k}: {v}" for k,v in hints.items() if v])
+        hint_text = "\n".join([f"- {k}: {v}" for k, v in hints.items() if v])
         messages.append({"role": "system", "content": "[BACKEND_HINTS]\n" + hint_text})
 
     messages.append({"role": "user", "content": question})
@@ -250,17 +253,41 @@ def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
         input=messages
     )
 
-    # Extract actual answer
+    # ===== VEILIGE EXTRACT-LOGICA =====
+    answer_text = None
+
     try:
-        # output[1] = assistant message block (o3 structure)
-        assistant_block = llm_response.output[1]
-        answer_text = assistant_block.content[0].text
+        output = getattr(llm_response, "output", None)
+
+        if isinstance(output, list):
+            # zoek eerste blok met tekst
+            for block in output:
+                content = getattr(block, "content", None)
+                if isinstance(content, list) and content:
+                    first = content[0]
+                    text = getattr(first, "text", None)
+                    if text:
+                        answer_text = text
+                        break
+
+        # extra fallback, sommige clients hebben output_text
+        if not answer_text and hasattr(llm_response, "output_text"):
+            answer_text = llm_response.output_text
+
     except Exception as e:
         print("❌ EXTRACT ERROR:", e)
+
+    if not answer_text:
         answer_text = "⚠️ Ik kon het antwoord niet verwerken."
 
-    return answer_text, llm_response.output
+    # Zorg dat 'output' JSON-serialiseerbaar is voor de frontend/logs
+    try:
+        raw = llm_response.model_dump()
+        raw_output = raw.get("output", [])
+    except Exception:
+        raw_output = []
 
+    return answer_text, raw_output
 
 # =============================================================
 # 7. ENDPOINTS
