@@ -33,7 +33,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 YELLOWMIND_MODEL = os.getenv("YELLOWMIND_MODEL")
 if not YELLOWMIND_MODEL:
-    print("Geen YELLOWMIND_MODEL env gevonden → fallback naar o3-mini")
+    print("WARNING: No YELLOWMIND_MODEL env found → fallback to o3-mini")
     YELLOWMIND_MODEL = "o3-mini"
 
 VALID_MODELS = [
@@ -45,10 +45,10 @@ VALID_MODELS = [
 ]
 
 if YELLOWMIND_MODEL not in VALID_MODELS:
-    print(f"Onbekend model '{YELLOWMIND_MODEL}' → fallback naar o3-mini")
+    print(f"WARNING: Unknown model '{YELLOWMIND_MODEL}' → fallback to o3-mini")
     YELLOWMIND_MODEL = "o3-mini"
 
-print(f"Yellowmind gebruikt model: {YELLOWMIND_MODEL}")
+print(f"Yellowmind using model: {YELLOWMIND_MODEL}")
 
 SQL_SEARCH_URL = os.getenv(
     "SQL_SEARCH_URL",
@@ -79,13 +79,14 @@ def load_file(path: str) -> str:
         with open(full_path, "r", encoding="utf-8") as f:
             return "\n" + f.read().strip() + "\n"
     except FileNotFoundError:
-        print(f"Yellowmind config file niet gevonden: {full_path}")
+        print(f"WARNING: Yellowmind config file not found: {full_path}")
         return ""
 
 def build_system_prompt() -> str:
     base = "yellowmind/"
     system_prompt = ""
 
+    # SYSTEM CORE
     system_prompt += load_file(base + "system/yellowmind_master_prompt_v2.txt")
     system_prompt += load_file(base + "core/core_identity.txt")
     system_prompt += load_file(base + "core/mission.txt")
@@ -93,23 +94,27 @@ def build_system_prompt() -> str:
     system_prompt += load_file(base + "core/introduction_rules.txt")
     system_prompt += load_file(base + "core/communication_baseline.txt")
 
+    # PARENTS
     system_prompt += load_file(base + "parents/parent_profile_brigitte.txt")
     system_prompt += load_file(base + "parents/parent_profile_dennis.txt")
     system_prompt += load_file(base + "parents/parent_profile_yello.txt")
     system_prompt += load_file(base + "parents/parent_mix_logic.txt")
 
+    # BEHAVIOUR
     system_prompt += load_file(base + "behaviour/behaviour_rules.txt")
     system_prompt += load_file(base + "behaviour/boundaries_safety.txt")
     system_prompt += load_file(base + "behaviour/escalation_rules.txt")
     system_prompt += load_file(base + "behaviour/uncertainty_handling.txt")
     system_prompt += load_file(base + "behaviour/user_types.txt")
 
+    # KNOWLEDGE
     system_prompt += load_file(base + "knowledge/knowledge_sources.txt")
     system_prompt += load_file(base + "knowledge/askyellow_site_rules.txt")
     system_prompt += load_file(base + "knowledge/product_rules.txt")
     system_prompt += load_file(base + "knowledge/no_hallucination_rules.txt")
     system_prompt += load_file(base + "knowledge/limitations.txt")
 
+    # TONE
     system_prompt += load_file(base + "tone/tone_of_voice.txt")
     system_prompt += load_file(base + "tone/branding_mode.txt")
     system_prompt += load_file(base + "tone/empathy_mode.txt")
@@ -123,7 +128,7 @@ SYSTEM_PROMPT = build_system_prompt()
 KNOWLEDGE_ENTRIES = load_knowledge()
 
 # =============================================================
-# 4. SQL KNOWLEDGE
+# 4. SQL KNOWLEDGE LAYER
 # =============================================================
 
 def normalize(text: str) -> str:
@@ -138,12 +143,15 @@ def jaccard_score(a: str, b: str) -> float:
     wb = set(normalize(b).split())
     if not wa or not wb:
         return 0.0
-    return len(wa & wb) / len(wa | wb)
+    inter = wa.intersection(wb)
+    union = wa.union(wb)
+    return len(inter) / len(union)
 
 def compute_match_score(user_q: str, cand_q: str) -> int:
     j = jaccard_score(user_q, cand_q)
     contains = 1.0 if normalize(cand_q) in normalize(user_q) else 0.0
-    return max(0, min(int((0.7 * j + 0.3 * contains) * 100), 100))
+    score = int((0.7 * j + 0.3 * contains) * 100)
+    return max(0, min(score, 100))
 
 def search_sql_knowledge(question: str):
     try:
@@ -162,59 +170,95 @@ def search_sql_knowledge(question: str):
     for row in data:
         score = compute_match_score(question, row.get("question", ""))
         if score > best_score:
+            best_score = score
             best = {
                 "id": row.get("id"),
                 "question": row.get("question", ""),
                 "answer": row.get("answer", ""),
                 "score": score
             }
-            best_score = score
 
     if best:
-        print(f"SQL BEST MATCH SCORE={best_score}")
+        print(f"[SQL-MATCH] score={best_score}")
     return best
 
 # =============================================================
-# 6. OPENAI CALL — SAFE PARSER
+# 5. MODE DETECTION
+# =============================================================
+
+def detect_hints(question: str):
+    q = question.lower()
+    mode = "auto"
+    context = "general"
+    user = None
+
+    if any(x in q for x in ["api", "bug", "foutmelding", "script", "dns"]):
+        mode = "tech"
+    if any(x in q for x in ["askyellow", "yellowmind", "logo", "branding"]):
+        mode = "branding"
+        context = "askyellow"
+    if any(x in q for x in ["ik voel me", "overprikkeld", "huil"]):
+        mode = "empathy"
+        user = "emotioneel"
+
+    return {
+        "mode_hint": mode,
+        "context_type": context,
+        "user_type_hint": user
+    }
+
+# =============================================================
+# 6. OPENAI CALL — SAFE PARSER + AI/EXT TIMING
 # =============================================================
 
 def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
-
     messages = []
 
+    # SYSTEM
     messages.append({"role": "system", "content": SYSTEM_PROMPT})
 
-    kb_blocks = []
+    # KNOWLEDGE BLOCKS
+    knowledge_blocks = []
 
     if kb_answer:
-        kb_blocks.append("STATIC_KB:\n" + kb_answer)
+        knowledge_blocks.append("STATIC_KB:\n" + kb_answer)
 
     if sql_match:
-        kb_blocks.append(
+        knowledge_blocks.append(
             "SQL_KB:\n"
             f"Vraag: {sql_match['question']}\n"
             f"Antwoord: {sql_match['answer']}\n"
             f"Score: {sql_match['score']}"
         )
 
-    if kb_blocks:
-        messages.append({"role": "system", "content": "[ASKYELLOW_KNOWLEDGE]\n" + "\n\n".join(kb_blocks)})
+    if knowledge_blocks:
+        messages.append({
+            "role": "system",
+            "content": "[ASKYELLOW_KNOWLEDGE]\n" + "\n\n".join(knowledge_blocks)
+        })
 
+    # HINTS
     if hints:
-        hint_txt = "\n".join([f"- {k}: {v}" for k, v in hints.items() if v])
-        messages.append({"role": "system", "content": "[BACKEND_HINTS]\n" + hint_txt})
+        hint_text = "\n".join([f"- {k}: {v}" for k, v in hints.items() if v])
+        messages.append({"role": "system", "content": "[BACKEND_HINTS]\n" + hint_text})
 
+    # USER
     messages.append({"role": "user", "content": question})
 
     selected_model = YELLOWMIND_MODEL
-    print(f"Model geselecteerd: {selected_model}")
+    print(f"Model selected: {selected_model}")
 
+    # AI CALL TIMING
+    t_ai_start = time.perf_counter()
     llm_response = client.responses.create(
         model=selected_model,
         input=messages
     )
+    t_ai_end = time.perf_counter()
 
+    # PARSE OUTPUT
     answer_text = None
+    t_parse_start = time.perf_counter()
 
     try:
         output = getattr(llm_response, "output", None)
@@ -222,23 +266,31 @@ def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
         if isinstance(output, list):
             for block in output:
                 content = getattr(block, "content", None)
-                if isinstance(content, list) and content:
+                if isinstance(content, list) and len(content) > 0:
                     first = content[0]
-                    txt = getattr(first, "text", None)
-                    if txt:
-                        answer_text = txt
+                    text = getattr(first, "text", None)
+                    if text:
+                        answer_text = text
                         break
 
+        # fallback for some clients
         if not answer_text and hasattr(llm_response, "output_text"):
             answer_text = llm_response.output_text
 
     except Exception as e:
         print("EXTRACT ERROR:", e)
 
+    t_parse_end = time.perf_counter()
+
+    ai_ms = (t_ai_end - t_ai_start) * 1000
+    ext_ms = (t_parse_end - t_ai_end) * 1000
+    print(f"[AI]   {ai_ms:.2f} ms")
+    print(f"[EXT]  {ext_ms:.2f} ms")
+
     if not answer_text:
         answer_text = "Ik kon het antwoord niet verwerken."
 
-    # JSON-safe output dump
+    # JSON-safe raw output
     try:
         raw = llm_response.model_dump()
         raw_output = raw.get("output", [])
@@ -248,72 +300,86 @@ def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
     return answer_text, raw_output
 
 # =============================================================
-# 7. ENDPOINT
+# 7. ENDPOINTS
 # =============================================================
+
+@app.get("/")
+async def root():
+    return {"status": "ok", "message": "Yellowmind backend is running"}
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+@app.head("/")
+async def head_root():
+    return Response(status_code=200)
 
 @app.post("/ask")
 async def ask_ai(request: Request):
-
-    t_total = time.perf_counter()
+    t_total_start = time.perf_counter()
 
     data = await request.json()
     question = (data.get("question") or "").strip()
     language = (data.get("language") or "nl").lower()
 
     if not question:
-        return JSONResponse(status_code=400, content={"error": "Geen vraag ontvangen."})
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Geen vraag ontvangen."},
+        )
 
     # QUICK IDENTITY
     identity_answer = try_identity_origin_answer(question, language)
     if identity_answer:
-        print("[TOTAL] QUICK-IDENTITY")
+        t_total_ms = (time.perf_counter() - t_total_start) * 1000
+        print(f"[TOTAL] {t_total_ms:.2f} ms (identity)")
         return {
             "answer": identity_answer,
             "output": [],
-            "source": "identity_origin"
+            "source": "identity_origin",
+            "kb_used": False,
+            "sql_used": False,
+            "sql_score": None,
+            "hints": {}
         }
 
-    # SQL LAYER
+    # SQL KNOWLEDGE
     t_sql_start = time.perf_counter()
     sql_match = search_sql_knowledge(question)
-    t_sql = (time.perf_counter() - t_sql_start) * 1000
-    print(f"[SQL]   {t_sql:.2f} ms")
+    t_sql_ms = (time.perf_counter() - t_sql_start) * 1000
+    print(f"[SQL]  {t_sql_ms:.2f} ms")
 
     if sql_match and sql_match["score"] >= 60:
-        t_total_ms = (time.perf_counter() - t_total) * 1000
-        print(f"[TOTAL] {t_total_ms:.2f} ms")
+        t_total_ms = (time.perf_counter() - t_total_start) * 1000
+        print(f"[TOTAL] {t_total_ms:.2f} ms (sql direct hit)")
         return {
             "answer": sql_match["answer"],
             "output": [],
             "source": "sql",
-            "sql_score": sql_match["score"]
+            "kb_used": False,
+            "sql_used": True,
+            "sql_score": sql_match["score"],
+            "hints": {}
         }
 
-    # JSON KB
+    # JSON KNOWLEDGE ENGINE
     t_kb_start = time.perf_counter()
     try:
         kb_answer = match_question(question, KNOWLEDGE_ENTRIES)
     except Exception:
         kb_answer = None
-    t_kb = (time.perf_counter() - t_kb_start) * 1000
-    print(f"[KB]    {t_kb:.2f} ms")
+    t_kb_ms = (time.perf_counter() - t_kb_start) * 1000
+    print(f"[KB]   {t_kb_ms:.2f} ms")
 
     hints = detect_hints(question)
 
-    # AI CALL
-    t_ai_start = time.perf_counter()
+    # AI LAYER
     final_answer, raw_output = call_yellowmind_llm(
         question, language, kb_answer, sql_match, hints
     )
-    t_ai = (time.perf_counter() - t_ai_start) * 1000
-    print(f"[AI]    {t_ai:.2f} ms")
 
-    # Extract timing
-    t_extract = (time.perf_counter() - t_ai_start) * 1000
-    print(f"[EXT]   {t_extract:.2f} ms")
-
-    # TOTAL
-    t_total_ms = (time.perf_counter() - t_total) * 1000
+    t_total_ms = (time.perf_counter() - t_total_start) * 1000
     print(f"[TOTAL] {t_total_ms:.2f} ms")
 
     return {
@@ -323,7 +389,7 @@ async def ask_ai(request: Request):
         "kb_used": bool(kb_answer),
         "sql_used": bool(sql_match),
         "sql_score": sql_match["score"] if sql_match else None,
-        "response_time_ms": round(t_total_ms, 2)
+        "hints": hints
     }
 
 # =============================================================
