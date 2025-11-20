@@ -48,7 +48,7 @@ if YELLOWMIND_MODEL not in VALID_MODELS:
     print(f"Onbekend model '{YELLOWMIND_MODEL}' → fallback naar o3-mini")
     YELLOWMIND_MODEL = "o3-mini"
 
-print(f"🧠 Yellowmind gebruikt model: {YELLOWMIND_MODEL}")
+print(f"Yellowmind gebruikt model: {YELLOWMIND_MODEL}")
 
 SQL_SEARCH_URL = os.getenv(
     "SQL_SEARCH_URL",
@@ -158,11 +158,11 @@ def search_sql_knowledge(question: str):
     try:
         resp = requests.post(SQL_SEARCH_URL, data={"q": question}, timeout=3)
         if resp.status_code != 200:
-            print("⚠️ SQL STATUS:", resp.status_code)
+            print("SQL STATUS:", resp.status_code)
             return None
         data = resp.json()
     except Exception as e:
-        print("⚠️ SQL ERROR:", e)
+        print("SQL ERROR:", e)
         return None
 
     best = None
@@ -180,7 +180,7 @@ def search_sql_knowledge(question: str):
             }
 
     if best:
-        print(f"🧠 SQL BEST MATCH SCORE={best_score}")
+        print(f"SQL BEST MATCH SCORE={best_score}")
     return best
 
 
@@ -250,7 +250,7 @@ def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
 
     # MODEL SELECTIE
     selected_model = YELLOWMIND_MODEL
-    print(f"🤖 Model geselecteerd: {selected_model}")
+    print(f"Model geselecteerd: {selected_model}")
 
     # 5. OpenAI Responses API
     llm_response = client.responses.create(
@@ -283,7 +283,7 @@ def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
             answer_text = llm_response.output_text
 
     except Exception as e:
-        print("❌ EXTRACT ERROR:", e)
+        print("EXTRACT ERROR:", e)
 
     # fallback wanneer ALLES faalt
     if not answer_text:
