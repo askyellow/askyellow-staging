@@ -217,8 +217,10 @@ def detect_hints(question: str):
 def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
     messages = []
 
+    # 1. SYSTEM CONTEXT
     messages.append({"role": "system", "content": SYSTEM_PROMPT})
 
+    # 2. KNOWLEDGE BLOCKS
     knowledge_blocks = []
 
     if kb_answer:
@@ -233,33 +235,68 @@ def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
         )
 
     if knowledge_blocks:
-        messages.append({"role": "system", "content": "[ASKYELLOW_KNOWLEDGE]\n" + "\n\n".join(knowledge_blocks)})
+        messages.append({
+            "role": "system",
+            "content": "[ASKYELLOW_KNOWLEDGE]\n" + "\n\n".join(knowledge_blocks)
+        })
 
+    # 3. HINTS
     if hints:
-        hint_text = "\n".join([f"- {k}: {v}" for k,v in hints.items() if v])
+        hint_text = "\n".join([f"- {k}: {v}" for k, v in hints.items() if v])
         messages.append({"role": "system", "content": "[BACKEND_HINTS]\n" + hint_text})
 
+    # 4. USER
     messages.append({"role": "user", "content": question})
 
+    # MODEL SELECTIE
     selected_model = YELLOWMIND_MODEL
     print(f"🤖 Model geselecteerd: {selected_model}")
 
-    # OpenAI Responses API
+    # 5. OpenAI Responses API
     llm_response = client.responses.create(
         model=selected_model,
         input=messages
     )
 
-    # Extract actual answer
+    # ============================================================
+    # 6. VEILIGE OUTPUT-PARSER (werkt met ALLE OpenAI modellen)
+    # ============================================================
+    answer_text = None
+
     try:
-        # output[1] = assistant message block (o3 structure)
-        assistant_block = llm_response.output[1]
-        answer_text = assistant_block.content[0].text
+        output = getattr(llm_response, "output", None)
+
+        if isinstance(output, list):
+            # Loop door ALLE blokken heen
+            # Pak de eerste content->text die beschikbaar is
+            for block in output:
+                content = getattr(block, "content", None)
+                if isinstance(content, list) and len(content) > 0:
+                    first = content[0]
+                    text = getattr(first, "text", None)
+                    if text:
+                        answer_text = text
+                        break
+
+        # fallback: sommige clients hebben output_text
+        if not answer_text and hasattr(llm_response, "output_text"):
+            answer_text = llm_response.output_text
+
     except Exception as e:
         print("❌ EXTRACT ERROR:", e)
-        answer_text = "⚠️ Ik kon het antwoord niet verwerken."
 
-    return answer_text, llm_response.output
+    # fallback wanneer ALLES faalt
+    if not answer_text:
+        answer_text = ⚠️ Ik kon het antwoord niet verwerken."
+
+    # Maak de output JSON-safe voor frontend/logging
+    try:
+        raw = llm_response.model_dump()
+        raw_output = raw.get("output", [])
+    except Exception:
+        raw_output = []
+
+    return answer_text, raw_output
 
 
 # =============================================================
