@@ -8,6 +8,7 @@ import uvicorn
 import requests
 import unicodedata
 import re
+import time
 
 # =============================================================
 # 0. PAD & KNOWLEDGE ENGINE IMPORTS
@@ -320,6 +321,8 @@ async def ask_ai(request: Request):
     data = await request.json()
     question = (data.get("question") or "").strip()
     language = (data.get("language") or "nl").lower()
+	# Start total timer
+	t_total = time.perf_counter()
 
     if not question:
         return JSONResponse(
@@ -341,7 +344,11 @@ async def ask_ai(request: Request):
         }
 
     # SQL KNOWLEDGE
-    sql_match = search_sql_knowledge(question)
+    t_sql_start = time.perf_counter()
+sql_match = search_sql_knowledge(question)
+t_sql = (time.perf_counter() - t_sql_start) * 1000
+print(f"[SQL]   {t_sql:.2f} ms")
+
     if sql_match and sql_match["score"] >= 60:
         return {
             "answer": sql_match["answer"],
@@ -355,15 +362,24 @@ async def ask_ai(request: Request):
 
     # JSON KNOWLEDGE ENGINE
     try:
-        kb_answer = match_question(question, KNOWLEDGE_ENTRIES)
+        kb_answer = match_question(question, KNOWLEDGE_ENTRIES)t_kb_start = time.perf_counter()
+kb_answer = match_question(question, KNOWLEDGE_ENTRIES)
+t_kb = (time.perf_counter() - t_kb_start) * 1000
+print(f"[KB]    {t_kb:.2f} ms")
     except Exception:
         kb_answer = None
 
     hints = detect_hints(question)
 
-    final_answer, raw_output = call_yellowmind_llm(
-        question, language, kb_answer, sql_match, hints
-    )
+    t_ai_start = time.perf_counter()
+final_answer, raw_output = call_yellowmind_llm(
+    question, language, kb_answer, sql_match, hints
+)
+t_ai = (time.perf_counter() - t_ai_start) * 1000
+print(f"[AI]    {t_ai:.2f} ms")
+t_extract = (time.perf_counter() - t_ai_start) * 1000
+print(f"[EXT]   {t_extract:.2f} ms")
+
 
     return {
         "answer": final_answer,
@@ -375,6 +391,8 @@ async def ask_ai(request: Request):
         "hints": hints
     }
 
+t_total_ms = (time.perf_counter() - t_total) * 1000
+print(f"[TOTAL] {t_total_ms:.2f} ms")
 
 # =============================================================
 # 8. LOCAL DEV
