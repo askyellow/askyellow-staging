@@ -287,7 +287,7 @@ def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
 
     # fallback wanneer ALLES faalt
     if not answer_text:
-        answer_text = Ik kon het antwoord niet verwerken."
+        answer_text = "Ik kon het antwoord niet verwerken."
 
     # Maak de output JSON-safe voor frontend/logging
     try:
