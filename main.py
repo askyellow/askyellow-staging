@@ -45,7 +45,7 @@ VALID_MODELS = [
 ]
 
 if YELLOWMIND_MODEL not in VALID_MODELS:
-    print(f"⚠️ Onbekend model '{YELLOWMIND_MODEL}' → fallback naar o3-mini")
+    print(f"Onbekend model '{YELLOWMIND_MODEL}' → fallback naar o3-mini")
     YELLOWMIND_MODEL = "o3-mini"
 
 print(f"🧠 Yellowmind gebruikt model: {YELLOWMIND_MODEL}")
@@ -80,7 +80,7 @@ def load_file(path: str) -> str:
         with open(full_path, "r", encoding="utf-8") as f:
             return "\n" + f.read().strip() + "\n"
     except FileNotFoundError:
-        print(f"⚠️ Yellowmind config file niet gevonden: {full_path}")
+        print(f"Yellowmind config file niet gevonden: {full_path}")
         return ""
 
 def build_system_prompt() -> str:
