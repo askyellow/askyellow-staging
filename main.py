@@ -6,7 +6,6 @@ from openai import OpenAI
 import os
 import uvicorn
 import requests
-import time
 import unicodedata
 import re
 
@@ -215,7 +214,6 @@ def detect_hints(question: str):
 # 6. OPENAI CALL — FIXED FOR o3 RESPONSE FORMAT
 # =============================================================
 
-
 def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
     messages = []
 
@@ -238,69 +236,30 @@ def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
         messages.append({"role": "system", "content": "[ASKYELLOW_KNOWLEDGE]\n" + "\n\n".join(knowledge_blocks)})
 
     if hints:
-        hint_text = "\n".join([f"- {k}: {v}" for k, v in hints.items() if v])
+        hint_text = "\n".join([f"- {k}: {v}" for k,v in hints.items() if v])
         messages.append({"role": "system", "content": "[BACKEND_HINTS]\n" + hint_text})
 
     messages.append({"role": "user", "content": question})
 
-    primary_model = YELLOWMIND_MODEL
-    fallback_model = None
-    if primary_model in ["gpt-4.1", "gpt-4.1-mini"]:
-        fallback_model = "gpt-4o-mini"
+    selected_model = YELLOWMIND_MODEL
+    print(f"🤖 Model geselecteerd: {selected_model}")
 
-    print(f"🤖 Model geselecteerd (primary): {primary_model}")
-    if fallback_model:
-        print(f"🧠 Fallback model geconfigureerd: {fallback_model}")
+    # OpenAI Responses API
+    llm_response = client.responses.create(
+        model=selected_model,
+        input=messages
+    )
 
-    llm_start = time.perf_counter()
-    used_model = primary_model
-    llm_response = None
-
+    # Extract actual answer
     try:
-        if fallback_model:
-            print(f"⚡ Trying primary model: {primary_model}")
-            t0 = time.perf_counter()
-            llm_response = client.responses.create(
-                model=primary_model,
-                input=messages
-            )
-            primary_dur = time.perf_counter() - t0
-
-            if primary_dur > 6.0:
-                print(f"⚠️ {primary_model} te traag ({primary_dur:.2f}s), switching to {fallback_model}")
-                print(f"🧠 Trying fallback model: {fallback_model}")
-                t1 = time.perf_counter()
-                llm_response = client.responses.create(
-                    model=fallback_model,
-                    input=messages
-                )
-                fallback_dur = time.perf_counter() - t1
-                used_model = fallback_model
-                print(f"🧠 Fallback {fallback_model} success in {fallback_dur:.2f}s")
-            else:
-                print(f"🧠 Primary model {primary_model} success in {primary_dur:.2f}s")
-        else:
-            print(f"🤖 Using single model: {primary_model}")
-            llm_response = client.responses.create(
-                model=primary_model,
-                input=messages
-            )
-    except Exception as e:
-        print("❌ LLM CALL ERROR:", e)
-        llm_total = time.perf_counter() - llm_start
-        return "⚠️ Ik kon geen geldig antwoord genereren.", [], llm_total
-
-    llm_total = time.perf_counter() - llm_start
-
-    try:
+        # output[1] = assistant message block (o3 structure)
         assistant_block = llm_response.output[1]
         answer_text = assistant_block.content[0].text
     except Exception as e:
         print("❌ EXTRACT ERROR:", e)
         answer_text = "⚠️ Ik kon het antwoord niet verwerken."
 
-    print(f"[LLM] Gebruikt model: {used_model}")
-    return answer_text, llm_response.output, llm_total
+    return answer_text, llm_response.output
 
 
 # =============================================================
@@ -319,40 +278,21 @@ async def health():
 async def head_root():
     return Response(status_code=200)
 
-
 @app.post("/ask")
 async def ask_ai(request: Request):
-    req_start = time.perf_counter()
-    print("\n======== NEW REQUEST ========")
-
     data = await request.json()
     question = (data.get("question") or "").strip()
     language = (data.get("language") or "nl").lower()
 
-    print(f"Vraag: {question}")
-
     if not question:
-        print("⚠️ Geen vraag ontvangen.")
-        total = time.perf_counter() - req_start
-        print(f"[Perf] TOTAL REQUEST: {total:.4f} sec")
-        print("==========================================\n")
         return JSONResponse(
             status_code=400,
             content={"error": "Geen vraag ontvangen."},
         )
 
-    # Identity-origin
-    t_id_start = time.perf_counter()
+    # QUICK IDENTITY
     identity_answer = try_identity_origin_answer(question, language)
-    t_id = time.perf_counter() - t_id_start
-    print(f"[Perf] Identity-origin: {t_id:.4f} sec")
-
     if identity_answer:
-        print("[Source] identity_origin (direct antwoord)")
-        total = time.perf_counter() - req_start
-        print("[Perf] OpenAI LLM: 0.0000 sec")
-        print(f"[Perf] TOTAL REQUEST: {total:.4f} sec")
-        print("==========================================\n")
         return {
             "answer": identity_answer,
             "output": [],
@@ -364,23 +304,8 @@ async def ask_ai(request: Request):
         }
 
     # SQL KNOWLEDGE
-    t_sql_start = time.perf_counter()
     sql_match = search_sql_knowledge(question)
-    t_sql = time.perf_counter() - t_sql_start
-    print(f"[Perf] SQL Search: {t_sql:.4f} sec")
-
-    if sql_match:
-        print(f"[SQL] Best match score: {sql_match['score']} / 100")
-        print(f"[SQL] Q: {sql_match['question']}")
-    else:
-        print("[SQL] Geen match gevonden")
-
     if sql_match and sql_match["score"] >= 60:
-        print("[Source] sql (direct hit)")
-        total = time.perf_counter() - req_start
-        print("[Perf] OpenAI LLM: 0.0000 sec")
-        print(f"[Perf] TOTAL REQUEST: {total:.4f} sec")
-        print("==========================================\n")
         return {
             "answer": sql_match["answer"],
             "output": [],
@@ -392,35 +317,16 @@ async def ask_ai(request: Request):
         }
 
     # JSON KNOWLEDGE ENGINE
-    t_kb_start = time.perf_counter()
     try:
         kb_answer = match_question(question, KNOWLEDGE_ENTRIES)
-    except Exception as e:
-        print("KB error:", e)
+    except Exception:
         kb_answer = None
-    t_kb = time.perf_counter() - t_kb_start
-    print(f"[Perf] JSON KB: {t_kb:.4f} sec")
-    if kb_answer:
-        print("[KB] JSON KB match actief")
-    else:
-        print("[KB] Geen JSON KB match")
 
-    # HINTS
-    t_hint_start = time.perf_counter()
     hints = detect_hints(question)
-    t_hint = time.perf_counter() - t_hint_start
-    print(f"[Perf] Hint detection: {t_hint:.4f} sec")
-    print(f"[HINT] {hints}")
 
-    # LLM CALL
-    final_answer, raw_output, llm_dur = call_yellowmind_llm(
+    final_answer, raw_output = call_yellowmind_llm(
         question, language, kb_answer, sql_match, hints
     )
-
-    total = time.perf_counter() - req_start
-    print(f"[Perf] OpenAI LLM: {llm_dur:.4f} sec")
-    print(f"[Perf] TOTAL REQUEST: {total:.4f} sec")
-    print("==========================================\n")
 
     return {
         "answer": final_answer,
@@ -431,9 +337,6 @@ async def ask_ai(request: Request):
         "sql_score": sql_match["score"] if sql_match else None,
         "hints": hints
     }
-
-
-
 
 
 # =============================================================
