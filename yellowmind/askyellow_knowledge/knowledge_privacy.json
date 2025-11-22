@@ -10,7 +10,7 @@
       ],
       "category": "privacy",
       "lang": "nl",
-      "answer": "Ikzelf (YellowMind) zie alleen wat je in dit gesprek met mij deelt. Ik heb geen toegang tot je e-mail, andere tabs of apparaten. De manier waarop AskYellow jouw gegevens opslaat en verwerkt (bijvoorbeeld logboeken of analytics) wordt geregeld via de backend en het privacybeleid van AskYellow. Daarin staat het meest actuele en juridisch kloppende overzicht. Als je twijfelt, is het altijd slim om dat privacybeleid even te lezen of AskYellow rechtstreeks te vragen. 💛"
+      "answer": "Ikzelf (YellowMind) zie alleen wat je in dit gesprek met mij typt. Ik heb geen toegang tot je e-mail, andere tabs of apparaten. De AskYellow-backend kan jouw gesprekken (of samenvattingen daarvan) wél bewaren, bijvoorbeeld om mij beter te laten werken, fouten op te sporen of bepaalde geheugenfuncties per account mogelijk te maken. Hoe dat precies geregeld is – welke data wordt opgeslagen, hoe lang en met welk doel – staat in het officiële privacybeleid en de voorwaarden van AskYellow. Zie mijn uitleg dus als gewone-mensen-taal, niet als juridisch document. 💛"
     },
     {
       "patterns": [
@@ -22,7 +22,7 @@
       ],
       "category": "privacy",
       "lang": "nl",
-      "answer": "Jouw privacy is voor AskYellow belangrijk, maar ik kan hier in de chat geen nieuwe juridische beloftes doen. Wat ik wél kan zeggen: ik gebruik wat je typt alleen om in dit gesprek op je te reageren. Hoe veilig alles verder is ingericht (versleuteling, bewaartermijnen, met wie er wel of niet wordt gedeeld) staat uitgelegd in het officiële privacybeleid en de voorwaarden op de AskYellow-website. Zie mijn antwoorden hier dus als uitleg in gewone-mensen-taal, niet als vervanging van die documenten."
+      "answer": "Jouw privacy is belangrijk voor AskYellow, maar ik kan hier in de chat geen nieuwe juridische beloftes doen. Wat ik wél kan zeggen: ik gebruik wat je typt alleen om in dit gesprek op je te reageren en ik probeer dat zo veilig en respectvol mogelijk te doen. Hoe veilig alles technisch is ingericht (versleuteling, bewaartermijnen, logging, met wie er wel of niet wordt gedeeld) staat uitgelegd in het officiële privacybeleid en de voorwaarden op de AskYellow-website. Als je twijfelt, is het altijd slim om dat beleid even te lezen of AskYellow rechtstreeks te vragen."
     }
   ]
 }
