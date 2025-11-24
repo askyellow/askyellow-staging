@@ -211,7 +211,7 @@ def detect_hints(question: str):
 
 
 # =============================================================
-# 6. OPENAI CALL — FIXED FOR o3 RESPONSE FORMAT
+# 6. OPENAI CALL — FIXED FOR o3 RESPONSE FORMAT (SAFE)
 # =============================================================
 
 def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
@@ -250,33 +250,42 @@ def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
         input=messages
     )
 
-    # Extract actual answer
+    # =============================================================
+    # SAFE ANSWER EXTRACTOR
+    # =============================================================
+
+    answer_text = None
+
     try:
-        # output[1] = assistant message block (o3 structure)
-        assistant_block = llm_response.output[1]
-        answer_text = assistant_block.content[0].text
+        # 1. Zoek expliciet naar assistant message blocks
+        for block in llm_response.output:
+            if hasattr(block, "type") and block.type == "message":
+                if getattr(block, "role", None) == "assistant":
+                    try:
+                        answer_text = block.content[0].text
+                        break
+                    except:
+                        pass
+
+        # 2. Fallback: pak eerste block met content
+        if not answer_text:
+            for block in llm_response.output:
+                if hasattr(block, "content") and block.content:
+                    try:
+                        answer_text = block.content[0].text
+                        break
+                    except:
+                        pass
+
+        # 3. Als er nog steeds geen tekst is:
+        if not answer_text:
+            answer_text = "⚠️ Geen leesbare assistant-output ontvangen."
+
     except Exception as e:
-        print("❌ EXTRACT ERROR:", e)
-        answer_text = "⚠️ Ik kon het antwoord niet verwerken."
+        print("❌ EXTRACT ERROR SAFE:", e)
+        answer_text = "⚠️ Ik kon het modelantwoord niet verwerken."
 
     return answer_text, llm_response.output
-
-# =============================================================
-# X. PERFORMANCE STATUS CHECK
-# =============================================================
-
-import time
-
-def detect_cold_start(sql_ms, kb_ms, ai_ms, total_ms):
-    if ai_ms > 6000:
-        return "🔥 COLD START — model wakker gemaakt"
-    if sql_ms > 800:
-        return "❄️ SLOW SQL"
-    if kb_ms > 200:
-        return "⚠️ KB slow"
-    if total_ms > 5000:
-        return "⏱️ Slow total"
-    return "✓ warm"
 
 
 # =============================================================
