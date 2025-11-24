@@ -396,7 +396,6 @@ async def ask_ai(request: Request):
             if hasattr(block, "type") and block.type == "response.stats":
                 sql_ms = getattr(block, "sql_ms", 0)
                 kb_ms = getattr(block, "kb_ms", 0)
-                ai_ms = (time.time() - start_ai) * 1000
                 total_ms = getattr(block, "total_ms", 0)
     except:
         pass
