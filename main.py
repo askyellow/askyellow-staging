@@ -8,7 +8,6 @@ import uvicorn
 import requests
 import unicodedata
 import re
-import time
 
 # =============================================================
 # 0. PAD & KNOWLEDGE ENGINE IMPORTS
@@ -18,6 +17,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 from yellowmind.knowledge_engine import load_knowledge, match_question
 from yellowmind.identity_origin import try_identity_origin_answer
+
 
 # =============================================================
 # 1. ENVIRONMENT & OPENAI CLIENT
@@ -33,7 +33,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 YELLOWMIND_MODEL = os.getenv("YELLOWMIND_MODEL")
 if not YELLOWMIND_MODEL:
-    print("WARNING: No YELLOWMIND_MODEL env found → fallback to o3-mini")
+    print("⚠️ Geen YELLOWMIND_MODEL env gevonden → fallback naar o3-mini")
     YELLOWMIND_MODEL = "o3-mini"
 
 VALID_MODELS = [
@@ -45,10 +45,10 @@ VALID_MODELS = [
 ]
 
 if YELLOWMIND_MODEL not in VALID_MODELS:
-    print(f"WARNING: Unknown model '{YELLOWMIND_MODEL}' → fallback to o3-mini")
+    print(f"⚠️ Onbekend model '{YELLOWMIND_MODEL}' → fallback naar o3-mini")
     YELLOWMIND_MODEL = "o3-mini"
 
-print(f"Yellowmind using model: {YELLOWMIND_MODEL}")
+print(f"🧠 Yellowmind gebruikt model: {YELLOWMIND_MODEL}")
 
 SQL_SEARCH_URL = os.getenv(
     "SQL_SEARCH_URL",
@@ -63,11 +63,12 @@ app = FastAPI(title="YellowMind API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # =============================================================
 # 3. HELPERS: LOAD FILES & PROMPT
@@ -79,7 +80,7 @@ def load_file(path: str) -> str:
         with open(full_path, "r", encoding="utf-8") as f:
             return "\n" + f.read().strip() + "\n"
     except FileNotFoundError:
-        print(f"WARNING: Yellowmind config file not found: {full_path}")
+        print(f"⚠️ Yellowmind config file niet gevonden: {full_path}")
         return ""
 
 def build_system_prompt() -> str:
@@ -157,30 +158,31 @@ def search_sql_knowledge(question: str):
     try:
         resp = requests.post(SQL_SEARCH_URL, data={"q": question}, timeout=3)
         if resp.status_code != 200:
-            print("SQL STATUS:", resp.status_code)
+            print("⚠️ SQL STATUS:", resp.status_code)
             return None
         data = resp.json()
     except Exception as e:
-        print("SQL ERROR:", e)
+        print("⚠️ SQL ERROR:", e)
         return None
 
     best = None
     best_score = 0
 
     for row in data:
-        score = compute_match_score(question, row.get("question", ""))
+        score = compute_match_score(question, row.get("question",""))
         if score > best_score:
             best_score = score
             best = {
                 "id": row.get("id"),
-                "question": row.get("question", ""),
-                "answer": row.get("answer", ""),
+                "question": row.get("question",""),
+                "answer": row.get("answer",""),
                 "score": score
             }
 
     if best:
-        print(f"[SQL-MATCH] score={best_score}")
+        print(f"🧠 SQL BEST MATCH SCORE={best_score}")
     return best
+
 
 # =============================================================
 # 5. MODE DETECTION
@@ -207,17 +209,16 @@ def detect_hints(question: str):
         "user_type_hint": user
     }
 
+
 # =============================================================
-# 6. OPENAI CALL — SAFE PARSER + AI/EXT TIMING
+# 6. OPENAI CALL — FIXED FOR o3 RESPONSE FORMAT
 # =============================================================
 
 def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
     messages = []
 
-    # SYSTEM
     messages.append({"role": "system", "content": SYSTEM_PROMPT})
 
-    # KNOWLEDGE BLOCKS
     knowledge_blocks = []
 
     if kb_answer:
@@ -232,72 +233,51 @@ def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
         )
 
     if knowledge_blocks:
-        messages.append({
-            "role": "system",
-            "content": "[ASKYELLOW_KNOWLEDGE]\n" + "\n\n".join(knowledge_blocks)
-        })
+        messages.append({"role": "system", "content": "[ASKYELLOW_KNOWLEDGE]\n" + "\n\n".join(knowledge_blocks)})
 
-    # HINTS
     if hints:
-        hint_text = "\n".join([f"- {k}: {v}" for k, v in hints.items() if v])
+        hint_text = "\n".join([f"- {k}: {v}" for k,v in hints.items() if v])
         messages.append({"role": "system", "content": "[BACKEND_HINTS]\n" + hint_text})
 
-    # USER
     messages.append({"role": "user", "content": question})
 
     selected_model = YELLOWMIND_MODEL
-    print(f"Model selected: {selected_model}")
+    print(f"🤖 Model geselecteerd: {selected_model}")
 
-    # AI CALL TIMING
-    t_ai_start = time.perf_counter()
+    # OpenAI Responses API
     llm_response = client.responses.create(
         model=selected_model,
         input=messages
     )
-    t_ai_end = time.perf_counter()
 
-    # PARSE OUTPUT
-    answer_text = None
-    t_parse_start = time.perf_counter()
-
+    # Extract actual answer
     try:
-        output = getattr(llm_response, "output", None)
-
-        if isinstance(output, list):
-            for block in output:
-                content = getattr(block, "content", None)
-                if isinstance(content, list) and len(content) > 0:
-                    first = content[0]
-                    text = getattr(first, "text", None)
-                    if text:
-                        answer_text = text
-                        break
-
-        # fallback for some clients
-        if not answer_text and hasattr(llm_response, "output_text"):
-            answer_text = llm_response.output_text
-
+        # output[1] = assistant message block (o3 structure)
+        assistant_block = llm_response.output[1]
+        answer_text = assistant_block.content[0].text
     except Exception as e:
-        print("EXTRACT ERROR:", e)
+        print("❌ EXTRACT ERROR:", e)
+        answer_text = "⚠️ Ik kon het antwoord niet verwerken."
 
-    t_parse_end = time.perf_counter()
+    return answer_text, llm_response.output
 
-    ai_ms = (t_ai_end - t_ai_start) * 1000
-    ext_ms = (t_parse_end - t_ai_end) * 1000
-    print(f"[AI]   {ai_ms:.2f} ms")
-    print(f"[EXT]  {ext_ms:.2f} ms")
+# =============================================================
+# X. PERFORMANCE STATUS CHECK
+# =============================================================
 
-    if not answer_text:
-        answer_text = "Ik kon het antwoord niet verwerken."
+import time
 
-    # JSON-safe raw output
-    try:
-        raw = llm_response.model_dump()
-        raw_output = raw.get("output", [])
-    except Exception:
-        raw_output = []
+def detect_cold_start(sql_ms, kb_ms, ai_ms, total_ms):
+    if ai_ms > 6000:
+        return "🔥 COLD START — model wakker gemaakt"
+    if sql_ms > 800:
+        return "❄️ SLOW SQL"
+    if kb_ms > 200:
+        return "⚠️ KB slow"
+    if total_ms > 5000:
+        return "⏱️ Slow total"
+    return "✓ warm"
 
-    return answer_text, raw_output
 
 # =============================================================
 # 7. ENDPOINTS
@@ -305,11 +285,19 @@ def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
 
 @app.get("/")
 async def root():
-    return {"status": "ok", "message": "Yellowmind backend is running"}
+    return {"status": "ok", "message": "Yellowmind backend draait 🚀"}
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+@app.get("/ping")
+async def ping():
+    return {
+        "alive": True,
+        "timestamp": time.time(),
+        "status": "YellowMind awake"
+    }
 
 @app.head("/")
 async def head_root():
@@ -317,8 +305,6 @@ async def head_root():
 
 @app.post("/ask")
 async def ask_ai(request: Request):
-    t_total_start = time.perf_counter()
-
     data = await request.json()
     question = (data.get("question") or "").strip()
     language = (data.get("language") or "nl").lower()
@@ -332,8 +318,6 @@ async def ask_ai(request: Request):
     # QUICK IDENTITY
     identity_answer = try_identity_origin_answer(question, language)
     if identity_answer:
-        t_total_ms = (time.perf_counter() - t_total_start) * 1000
-        print(f"[TOTAL] {t_total_ms:.2f} ms (identity)")
         return {
             "answer": identity_answer,
             "output": [],
@@ -345,14 +329,8 @@ async def ask_ai(request: Request):
         }
 
     # SQL KNOWLEDGE
-    t_sql_start = time.perf_counter()
     sql_match = search_sql_knowledge(question)
-    t_sql_ms = (time.perf_counter() - t_sql_start) * 1000
-    print(f"[SQL]  {t_sql_ms:.2f} ms")
-
     if sql_match and sql_match["score"] >= 60:
-        t_total_ms = (time.perf_counter() - t_total_start) * 1000
-        print(f"[TOTAL] {t_total_ms:.2f} ms (sql direct hit)")
         return {
             "answer": sql_match["answer"],
             "output": [],
@@ -364,23 +342,42 @@ async def ask_ai(request: Request):
         }
 
     # JSON KNOWLEDGE ENGINE
-    t_kb_start = time.perf_counter()
     try:
         kb_answer = match_question(question, KNOWLEDGE_ENTRIES)
     except Exception:
         kb_answer = None
-    t_kb_ms = (time.perf_counter() - t_kb_start) * 1000
-    print(f"[KB]   {t_kb_ms:.2f} ms")
 
     hints = detect_hints(question)
 
-    # AI LAYER
     final_answer, raw_output = call_yellowmind_llm(
         question, language, kb_answer, sql_match, hints
     )
+    # =============================================================
+    # PERFORMANCE LOGGING
+    # =============================================================
+    sql_ms = 0
+    kb_ms = 0
+    ai_ms = 0
+    total_ms = 0
 
-    t_total_ms = (time.perf_counter() - t_total_start) * 1000
-    print(f"[TOTAL] {t_total_ms:.2f} ms")
+    # O3/Responses API heeft soms stats blocks → probeer ze te lezen
+    try:
+        for block in raw_output:
+            if hasattr(block, "type") and block.type == "response.stats":
+                sql_ms = getattr(block, "sql_ms", 0)
+                kb_ms = getattr(block, "kb_ms", 0)
+                ai_ms = getattr(block, "ai_ms", 0)
+                total_ms = getattr(block, "total_ms", 0)
+    except:
+        pass
+
+    status = detect_cold_start(sql_ms, kb_ms, ai_ms, total_ms)
+
+    print(f"[STATUS] {status}")
+    print(f"[SQL] {sql_ms} ms")
+    print(f"[KB] {kb_ms} ms")
+    print(f"[AI] {ai_ms} ms")
+    print(f"[TOTAL] {total_ms} ms")
 
     return {
         "answer": final_answer,
@@ -391,6 +388,7 @@ async def ask_ai(request: Request):
         "sql_score": sql_match["score"] if sql_match else None,
         "hints": hints
     }
+
 
 # =============================================================
 # 8. LOCAL DEV
