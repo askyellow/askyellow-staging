@@ -361,6 +361,7 @@ async def ask_ai(request: Request):
     final_answer, raw_output = call_yellowmind_llm(
         question, language, kb_answer, sql_match, hints
     )
+
     # =============================================================
     # PERFORMANCE LOGGING
     # =============================================================
@@ -397,7 +398,6 @@ async def ask_ai(request: Request):
         "sql_score": sql_match["score"] if sql_match else None,
         "hints": hints
     }
-
 
 # =============================================================
 # 8. LOCAL DEV
