@@ -287,6 +287,25 @@ def call_yellowmind_llm(question, language, kb_answer, sql_match, hints):
 
     return answer_text, llm_response.output
 
+# =============================================================
+# X. PERFORMANCE STATUS CHECK
+# =============================================================
+
+import time
+
+def detect_cold_start(sql_ms, kb_ms, ai_ms, total_ms):
+    if ai_ms > 6000:
+        return "🔥 COLD START — model wakker gemaakt"
+    if sql_ms > 800:
+        return "❄️ SLOW SQL"
+    if kb_ms > 200:
+        return "⚠️ KB slow"
+    if total_ms > 5000:
+        return "⏱️ Slow total"
+    return "✓ warm"
+
+
+
 
 # =============================================================
 # 7. ENDPOINTS
@@ -358,6 +377,7 @@ async def ask_ai(request: Request):
 
     hints = detect_hints(question)
 
+    start_ai = time.time()
     final_answer, raw_output = call_yellowmind_llm(
         question, language, kb_answer, sql_match, hints
     )
@@ -376,7 +396,7 @@ async def ask_ai(request: Request):
             if hasattr(block, "type") and block.type == "response.stats":
                 sql_ms = getattr(block, "sql_ms", 0)
                 kb_ms = getattr(block, "kb_ms", 0)
-                ai_ms = getattr(block, "ai_ms", 0)
+                ai_ms = (time.time() - start_ai) * 1000
                 total_ms = getattr(block, "total_ms", 0)
     except:
         pass
@@ -398,23 +418,6 @@ async def ask_ai(request: Request):
         "sql_score": sql_match["score"] if sql_match else None,
         "hints": hints
     }
-# =============================================================
-# X. PERFORMANCE STATUS CHECK
-# =============================================================
-
-import time
-
-def detect_cold_start(sql_ms, kb_ms, ai_ms, total_ms):
-    if ai_ms > 6000:
-        return "🔥 COLD START — model wakker gemaakt"
-    if sql_ms > 800:
-        return "❄️ SLOW SQL"
-    if kb_ms > 200:
-        return "⚠️ KB slow"
-    if total_ms > 5000:
-        return "⏱️ Slow total"
-    return "✓ warm"
-
 # =============================================================
 # 8. LOCAL DEV
 # =============================================================
