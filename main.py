@@ -398,6 +398,22 @@ async def ask_ai(request: Request):
         "sql_score": sql_match["score"] if sql_match else None,
         "hints": hints
     }
+# =============================================================
+# X. PERFORMANCE STATUS CHECK
+# =============================================================
+
+import time
+
+def detect_cold_start(sql_ms, kb_ms, ai_ms, total_ms):
+    if ai_ms > 6000:
+        return "🔥 COLD START — model wakker gemaakt"
+    if sql_ms > 800:
+        return "❄️ SLOW SQL"
+    if kb_ms > 200:
+        return "⚠️ KB slow"
+    if total_ms > 5000:
+        return "⏱️ Slow total"
+    return "✓ warm"
 
 # =============================================================
 # 8. LOCAL DEV
