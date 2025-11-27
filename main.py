@@ -84,12 +84,17 @@ app.add_middleware(
 
 
 @app.get("/health")
-def health(db = Depends(get_db)):
+def health():
     """Eenvoudige healthcheck met DB-status en environment-info."""
     db_ok = True
     try:
+        # get_db wordt later in dit bestand gedefinieerd,
+        # maar hier pas bij aanroep gebruikt → geen NameError meer.
+        db = get_db()
         cur = db.cursor()
         cur.execute("SELECT 1")
+        cur.close()
+        db.close()
     except Exception:
         db_ok = False
 
