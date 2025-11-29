@@ -201,6 +201,12 @@ chatInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") sendMessage();
 });
 
+window.addEventListener("message", (event) => {
+    if (event.data.type === "welcome") {
+        startChatEngine();
+    }
+});
+
 </script>
 
 </body>
