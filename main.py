@@ -4,12 +4,14 @@ from fastapi.responses import Response, JSONResponse
 from dotenv import load_dotenv
 from openai import OpenAI
 from datetime import datetime
+from chat_engine.routes import router as chat_router
 import os
 import uvicorn
 import requests
 import unicodedata
 import re
 import secrets
+
 
 # DB
 import psycopg2
@@ -73,6 +75,8 @@ SQL_SEARCH_URL = os.getenv(
 # =============================================================
 
 app = FastAPI(title="YellowMind API")
+
+app.include_router(chat_router, prefix="/chat")
 
 app.add_middleware(
     CORSMiddleware,
