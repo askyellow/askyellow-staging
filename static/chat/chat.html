@@ -113,7 +113,12 @@
   </div>
 
 <script>
+
 let CHAT_SESSION_ID = null;
+
+const chatInput = document.getElementById("chatInput");
+const sendBtn = document.getElementById("sendBtn");
+const messages = document.getElementById("chatMessages");
 
 // haal user id
 let USER_ID = localStorage.getItem("yellowSession");
@@ -190,9 +195,6 @@ async function sendMessage() {
   }
 }
 
-const chatInput = document.getElementById("chatInput");
-const sendBtn = document.getElementById("sendBtn");
-const messages = document.getElementById("chatMessages");
 
 sendBtn.addEventListener("click", sendMessage);
 chatInput.addEventListener("keydown", (e) => {
