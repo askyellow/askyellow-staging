@@ -99,7 +99,7 @@
 
   <div id="chatHeader">
     <div id="chatHeader-left">
-      <img src="img/yello_medium.png" alt="Yello">
+      <img src="/static/img/yello_medium.png" alt="Yello">
       <span>YellowMind Chat</span>
     </div>
     <button id="closeChat">×</button>
@@ -169,7 +169,7 @@ async function sendMessage() {
   messages.scrollTop = messages.scrollHeight;
 
   try {
-    const res = await fetch("/chat/send", {
+    const res = await fetch("https://askyellow-staging.onrender.com/chat/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
