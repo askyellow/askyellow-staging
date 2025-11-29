@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from datetime import datetime
 from chat_engine.routes import router as chat_router
+from fastapi.responses import FileResponse
 import os
 import uvicorn
 import requests
@@ -85,6 +86,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/chat")
+def serve_chat_page():
+    base = os.path.dirname(os.path.abspath(__file__))
+    return FileResponse(os.path.join(base, "static/chat/chat.html"))
 
 
 @app.get("/health")
