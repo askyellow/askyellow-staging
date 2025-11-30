@@ -830,58 +830,6 @@ def get_user_from_session(conn, session_id: str):
 
 
 # =============================================================
-#  REGISTER
-# =============================================================
-@app.post("/auth/register")
-def register(data: RegisterInput):
-    conn = get_db_conn()
-    cur = conn.cursor()
-
-    email = data.email.strip().lower()
-    pw = data.password.strip()
-    first = data.first_name.strip()
-    last = data.last_name.strip()
-
-    if len(pw) < 6:
-        conn.close()
-        raise HTTPException(status_code=400, detail="Wachtwoord is te kort (minimaal 6 tekens).")
-
-    if not first or not last:
-        conn.close()
-        raise HTTPException(status_code=400, detail="Vul je voor- en achternaam in.")
-
-    cur.execute("SELECT id FROM users WHERE email = %s", (email,))
-    if cur.fetchone():
-        conn.close()
-        raise HTTPException(status_code=400, detail="Email bestaat al.")
-
-    pw_hash = hash_password(pw)
-
-    cur.execute("""
-        INSERT INTO users (email, password_hash, first_name, last_name, created_at)
-        VALUES (%s, %s, %s, %s, NOW())
-        RETURNING id
-    """, (email, pw_hash, first, last))
-    
-    user_id = cur.fetchone()["id"]
-
-    # Maak session
-    session_id = create_user_session(conn, user_id)
-
-    conn.commit()
-    conn.close()
-
-    return {
-    "success": True,
-    "session": session_id,
-    "user_id": user_id,
-    "first_name": first,
-    "last_name": last
-}
-
-
-
-# =============================================================
 #  LOGIN
 # =============================================================
 @app.post("/auth/login")
@@ -892,7 +840,12 @@ def login(data: LoginInput):
     email = data.email.strip().lower()
     pw = data.password.strip()
 
-    cur.execute("SELECT id, password_hash FROM users WHERE email = %s", (email,))
+    # Haal ook first_name en last_name op
+    cur.execute("""
+        SELECT id, password_hash, first_name, last_name
+        FROM users
+        WHERE email = %s
+    """, (email,))
     row = cur.fetchone()
 
     if not row or not verify_password(pw, row["password_hash"]):
@@ -900,64 +853,22 @@ def login(data: LoginInput):
         raise HTTPException(status_code=400, detail="Ongeldige login.")
 
     user_id = row["id"]
+    first = row["first_name"]
+    last = row["last_name"]
 
+    # Update last login
     cur.execute("UPDATE users SET last_login = NOW() WHERE id = %s", (user_id,))
 
+    # Maak nieuwe sessie
     session_id = create_user_session(conn, user_id)
 
     conn.commit()
     conn.close()
 
     return {
-    "success": True,
-    "session": session_id,
-    "user_id": user_id,
-    "first_name": first,
-    "last_name": last
-}
-
-
-
-# =============================================================
-#  ME (CHECK LOGIN STATE)
-# =============================================================
-@app.get("/auth/me")
-def auth_me(request: Request):
-    session_id = request.headers.get("Authorization")
-    if not session_id:
-        return {"logged_in": False}
-
-    conn = get_db_conn()
-    row = get_user_from_session(conn, session_id)
-    conn.close()
-
-    if not row:
-        return {"logged_in": False}
-
-    return {
-        "logged_in": True,
-        "user_id": row["id"],
-        "email": row["email"],
-        "created_at": row["created_at"],
-        "first_name": row["first_name"],
-        "last_name": row["last_name"],
+        "success": True,
+        "session": session_id,
+        "user_id": user_id,
+        "first_name": first,
+        "last_name": last
     }
-
-
-# =============================================================
-#  LOGOUT
-# =============================================================
-@app.post("/auth/logout")
-def logout(request: Request):
-    session_id = request.headers.get("Authorization")
-    if not session_id:
-        return {"success": True}
-
-    conn = get_db_conn()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM user_sessions WHERE session_id = %s", (session_id,))
-    conn.commit()
-    conn.close()
-
-    return {"success": True}
-
