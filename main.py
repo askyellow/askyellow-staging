@@ -871,7 +871,14 @@ def register(data: RegisterInput):
     conn.commit()
     conn.close()
 
-    return {"success": True, "session": session_id, "user_id": user_id}
+    return {
+    "success": True,
+    "session": session_id,
+    "user_id": user_id,
+    "first_name": first,
+    "last_name": last
+}
+
 
 
 # =============================================================
@@ -901,7 +908,14 @@ def login(data: LoginInput):
     conn.commit()
     conn.close()
 
-    return {"success": True, "session": session_id, "user_id": user_id}
+    return {
+    "success": True,
+    "session": session_id,
+    "user_id": user_id,
+    "first_name": first,
+    "last_name": last
+}
+
 
 
 # =============================================================
