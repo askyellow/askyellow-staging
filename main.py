@@ -786,7 +786,8 @@ import datetime
 class RegisterInput(BaseModel):
     email: str
     password: str
-
+    first_name: str
+    last_name: str
 
 class LoginInput(BaseModel):
     email: str
@@ -830,38 +831,36 @@ def get_user_from_session(session_id: str):
 # =============================================================
 #  REGISTER
 # =============================================================
-@app.post("/auth/register")
+@a@app.post("/auth/register")
 def register(data: RegisterInput):
     email = data.email.strip().lower()
     password = data.password.strip()
+    first = data.first_name.strip()
+    last = data.last_name.strip()
 
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Wachtwoord is te kort (minimaal 6 tekens).")
 
-    # Check if user exists
+    if not first or not last:
+        raise HTTPException(status_code=400, detail="Vul je voor- en achternaam in.")
+
     cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
     if cursor.fetchone():
         raise HTTPException(status_code=400, detail="Email bestaat al.")
 
-    # Make password hash
-    hashed = hash_password(password)
+    password_hash = hash_password(password)
 
-    # Insert user
-    cursor.execute(
-        "INSERT INTO users (email, password_hash, created_at) VALUES (%s, %s, NOW()) RETURNING id",
-        (email, hashed)
-    )
+    cursor.execute("""
+        INSERT INTO users (email, password_hash, first_name, last_name, created_at)
+        VALUES (%s, %s, %s, %s, NOW())
+        RETURNING id
+    """, (email, password_hash, first, last))
     user_id = cursor.fetchone()[0]
     db.commit()
 
-    # Create session
     session_id = create_user_session(user_id)
 
-    return {
-        "success": True,
-        "session": session_id,
-        "user_id": user_id
-    }
+    return {"success": True, "session": session_id, "user_id": user_id}
 
 
 # =============================================================
@@ -906,19 +905,29 @@ def auth_me(request: Request):
     if not session_id:
         return {"logged_in": False}
 
-    row = get_user_from_session(session_id)
+    cursor.execute("""
+        SELECT u.id, u.email, u.created_at, u.first_name, u.last_name
+        FROM users u
+        JOIN user_sessions s ON s.user_id = u.id
+        WHERE s.session_id = %s
+        AND s.expires_at > NOW()
+    """, (session_id,))
+    row = cursor.fetchone()
 
     if not row:
         return {"logged_in": False}
 
-    user_id, email, created_at = row
+    user_id, email, created_at, first, last = row
 
     return {
         "logged_in": True,
         "user_id": user_id,
         "email": email,
-        "created_at": created_at
+        "created_at": created_at,
+        "first_name": first,
+        "last_name": last
     }
+
 
 
 # =============================================================
