@@ -773,7 +773,11 @@ def admin_stats(key: str, db=Depends(get_db)):
 #  AUTH SYSTEM (REGISTER, LOGIN, ME, LOGOUT)
 # =============================================================
 
-from fastapi import HTTPException
+# =============================================================
+#  AUTH SYSTEM (REGISTER, LOGIN, ME, LOGOUT)
+#  Compatible with existing get_db_conn() usage
+# =============================================================
+
 from pydantic import BaseModel
 import bcrypt
 import secrets
@@ -800,32 +804,29 @@ class LoginInput(BaseModel):
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
-
-def create_user_session(user_id: int) -> str:
+def create_user_session(conn, user_id: int) -> str:
     session_id = "auth-" + secrets.token_hex(32)
     expires = datetime.datetime.utcnow() + datetime.timedelta(days=14)
-
-    cursor.execute(
+    cur = conn.cursor()
+    cur.execute(
         "INSERT INTO user_sessions (session_id, user_id, expires_at) VALUES (%s, %s, %s)",
         (session_id, user_id, expires)
     )
-    db.commit()
     return session_id
 
-
-def get_user_from_session(session_id: str):
-    cursor.execute("""
-        SELECT u.id, u.email, u.created_at
+def get_user_from_session(conn, session_id: str):
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT u.id, u.email, u.created_at, u.first_name, u.last_name
         FROM users u
         JOIN user_sessions s ON s.user_id = u.id
         WHERE s.session_id = %s
         AND s.expires_at > NOW()
     """, (session_id,))
-    return cursor.fetchone()
+    return cur.fetchone()
 
 
 # =============================================================
@@ -833,32 +834,42 @@ def get_user_from_session(session_id: str):
 # =============================================================
 @app.post("/auth/register")
 def register(data: RegisterInput):
+    conn = get_db_conn()
+    cur = conn.cursor()
+
     email = data.email.strip().lower()
-    password = data.password.strip()
+    pw = data.password.strip()
     first = data.first_name.strip()
     last = data.last_name.strip()
 
-    if len(password) < 6:
+    if len(pw) < 6:
+        conn.close()
         raise HTTPException(status_code=400, detail="Wachtwoord is te kort (minimaal 6 tekens).")
 
     if not first or not last:
+        conn.close()
         raise HTTPException(status_code=400, detail="Vul je voor- en achternaam in.")
 
-    cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
-    if cursor.fetchone():
+    cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+    if cur.fetchone():
+        conn.close()
         raise HTTPException(status_code=400, detail="Email bestaat al.")
 
-    password_hash = hash_password(password)
+    pw_hash = hash_password(pw)
 
-    cursor.execute("""
+    cur.execute("""
         INSERT INTO users (email, password_hash, first_name, last_name, created_at)
         VALUES (%s, %s, %s, %s, NOW())
         RETURNING id
-    """, (email, password_hash, first, last))
-    user_id = cursor.fetchone()[0]
-    db.commit()
+    """, (email, pw_hash, first, last))
+    
+    user_id = cur.fetchone()["id"]
 
-    session_id = create_user_session(user_id)
+    # Maak session
+    session_id = create_user_session(conn, user_id)
+
+    conn.commit()
+    conn.close()
 
     return {"success": True, "session": session_id, "user_id": user_id}
 
@@ -868,32 +879,29 @@ def register(data: RegisterInput):
 # =============================================================
 @app.post("/auth/login")
 def login(data: LoginInput):
+    conn = get_db_conn()
+    cur = conn.cursor()
+
     email = data.email.strip().lower()
-    password = data.password.strip()
+    pw = data.password.strip()
 
-    cursor.execute("SELECT id, password_hash FROM users WHERE email = %s", (email,))
-    row = cursor.fetchone()
+    cur.execute("SELECT id, password_hash FROM users WHERE email = %s", (email,))
+    row = cur.fetchone()
 
-    if not row:
+    if not row or not verify_password(pw, row["password_hash"]):
+        conn.close()
         raise HTTPException(status_code=400, detail="Ongeldige login.")
 
-    user_id, pw_hash = row
+    user_id = row["id"]
 
-    if not verify_password(password, pw_hash):
-        raise HTTPException(status_code=400, detail="Ongeldige login.")
+    cur.execute("UPDATE users SET last_login = NOW() WHERE id = %s", (user_id,))
 
-    # Update last login
-    cursor.execute("UPDATE users SET last_login = NOW() WHERE id = %s", (user_id,))
-    db.commit()
+    session_id = create_user_session(conn, user_id)
 
-    # Create new session
-    session_id = create_user_session(user_id)
+    conn.commit()
+    conn.close()
 
-    return {
-        "success": True,
-        "session": session_id,
-        "user_id": user_id
-    }
+    return {"success": True, "session": session_id, "user_id": user_id}
 
 
 # =============================================================
@@ -905,29 +913,21 @@ def auth_me(request: Request):
     if not session_id:
         return {"logged_in": False}
 
-    cursor.execute("""
-        SELECT u.id, u.email, u.created_at, u.first_name, u.last_name
-        FROM users u
-        JOIN user_sessions s ON s.user_id = u.id
-        WHERE s.session_id = %s
-        AND s.expires_at > NOW()
-    """, (session_id,))
-    row = cursor.fetchone()
+    conn = get_db_conn()
+    row = get_user_from_session(conn, session_id)
+    conn.close()
 
     if not row:
         return {"logged_in": False}
 
-    user_id, email, created_at, first, last = row
-
     return {
         "logged_in": True,
-        "user_id": user_id,
-        "email": email,
-        "created_at": created_at,
-        "first_name": first,
-        "last_name": last
+        "user_id": row["id"],
+        "email": row["email"],
+        "created_at": row["created_at"],
+        "first_name": row["first_name"],
+        "last_name": row["last_name"],
     }
-
 
 
 # =============================================================
@@ -936,9 +936,14 @@ def auth_me(request: Request):
 @app.post("/auth/logout")
 def logout(request: Request):
     session_id = request.headers.get("Authorization")
+    if not session_id:
+        return {"success": True}
 
-    if session_id:
-        cursor.execute("DELETE FROM user_sessions WHERE session_id = %s", (session_id,))
-        db.commit()
+    conn = get_db_conn()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM user_sessions WHERE session_id = %s", (session_id,))
+    conn.commit()
+    conn.close()
 
     return {"success": True}
+
