@@ -831,7 +831,7 @@ def get_user_from_session(session_id: str):
 # =============================================================
 #  REGISTER
 # =============================================================
-@a@app.post("/auth/register")
+@app.post("/auth/register")
 def register(data: RegisterInput):
     email = data.email.strip().lower()
     password = data.password.strip()
