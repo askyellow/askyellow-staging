@@ -769,9 +769,6 @@ def admin_stats(key: str, db=Depends(get_db)):
         "messages": messages,
         "last_message": last_msg,
     }
-# =============================================================
-#  AUTH SYSTEM (REGISTER, LOGIN, ME, LOGOUT)
-# =============================================================
 
 # =============================================================
 #  AUTH SYSTEM (REGISTER, LOGIN, ME, LOGOUT)
@@ -827,6 +824,56 @@ def get_user_from_session(conn, session_id: str):
         AND s.expires_at > NOW()
     """, (session_id,))
     return cur.fetchone()
+# =============================================================
+#  REGISTER
+# =============================================================
+@app.post("/auth/register")
+def register(data: RegisterInput):
+    conn = get_db_conn()
+    cur = conn.cursor()
+
+    email = data.email.strip().lower()
+    pw = data.password.strip()
+    first = data.first_name.strip()
+    last = data.last_name.strip()
+
+    if len(pw) < 6:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Wachtwoord is te kort (minimaal 6 tekens).")
+
+    if not first or not last:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Vul je voor- en achternaam in.")
+
+    cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+    if cur.fetchone():
+        conn.close()
+        raise HTTPException(status_code=400, detail="Email bestaat al.")
+
+    pw_hash = hash_password(pw)
+
+    cur.execute("""
+        INSERT INTO users (email, password_hash, first_name, last_name, created_at)
+        VALUES (%s, %s, %s, %s, NOW())
+        RETURNING id
+    """, (email, pw_hash, first, last))
+    
+    row = cur.fetchone()
+    user_id = row["id"]
+
+    # Maak sessie
+    session_id = create_user_session(conn, user_id)
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "success": True,
+        "session": session_id,
+        "user_id": user_id,
+        "first_name": first,
+        "last_name": last
+    }
 
 
 # =============================================================
