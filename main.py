@@ -200,6 +200,41 @@ def health():
 def shopify_search(q: str):
     return shopify_search_products(q)
 
+@app.post("/web")
+async def web_search(payload: dict):
+    query = payload.get("query", "")
+
+    prompt = f"""
+    Doe een live webzoekopdracht naar echte websites die relevant zijn voor:
+    '{query}'.
+
+    Geef de resultaten terug in JSON, met voor elk:
+    - title
+    - snippet (korte beschrijving, zonder markdown)
+    - url
+
+    Zorg dat het resultaat ALLEEN een JSON-lijst is, geen extra tekst.
+    Formaat:
+    [
+      {{"title": "...", "snippet": "...", "url": "..."}},
+      ...
+    ]
+    """
+
+    ai = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    import json
+    try:
+        online = ai.choices[0].message["content"]
+        results = json.loads(online)
+    except Exception:
+        results = []
+
+    return {"results": results}
+
 
 # =============================================================
 # POSTGRES DB FOR USERS / CONVERSATIONS / MESSAGES
