@@ -205,7 +205,7 @@ async def web_search(payload: dict):
     query = payload.get("query", "")
 
     prompt = f"""
-    Doe een live webzoekopdracht naar echte websites die relevant zijn voor:
+    Doe een webzoekopdracht naar echte websites die relevant zijn voor:
     '{query}'.
 
     Geef ALLEEN het volgende JSON-format terug:
@@ -223,34 +223,31 @@ async def web_search(payload: dict):
     )
 
     import json
-
     raw = ai.choices[0].message["content"]
 
-    # 1) Probeer pure JSON
+    # --- 1: Pure JSON proberen ---
     try:
-        results = json.loads(raw)
-        return {"results": results}
+        return {"results": json.loads(raw)}
     except:
         pass
 
-    # 2) Fallback — probeer JSON tussen blokhaken te vinden
+    # --- 2: JSON tussen blokhaken extraheren ---
     try:
         start = raw.index("[")
         end = raw.rindex("]") + 1
         cleaned = raw[start:end]
-        results = json.loads(cleaned)
-        return {"results": results}
+        return {"results": json.loads(cleaned)}
     except:
         pass
 
-    # 3) Laatste redmiddel — wrap als tekstresultaat
-    return {"results": [
-        {
-            "title": "Geen gestructureerde resultaten",
-            "snippet": raw[:250],
+    # --- 3: Fallback (nooit empty laten zijn) ---
+    return {
+        "results": [{
+            "title": "Webresultaten niet goed geformatteerd",
+            "snippet": raw[:200],
             "url": ""
-        }
-    ]}
+        }]
+    }
 
     ai = client.chat.completions.create(
         model="gpt-4.1-mini",
