@@ -18,6 +18,20 @@ import secrets
 import psycopg2
 import psycopg2.extras
 
+# =============================================================
+# SHOPIFY FUNCTIONS
+# =============================================================
+
+SHOPIFY_API_VERSION=2025-10
+
+def shopify_get_products():
+    url = f"https://{os.getenv('SHOPIFY_STORE_URL')}/admin/api/2025-10/products.json"
+    headers = {
+        "X-Shopify-Access-Token": os.getenv("SHOPIFY_ACCESS_TOKEN")
+    }
+    response = requests.get(url, headers=headers)
+    return response.json()
+
 
 # =============================================================
 # 0. PAD & KNOWLEDGE ENGINE IMPORTS
