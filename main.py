@@ -89,7 +89,7 @@ def shopify_search_products(query: str):
             "variants_count": len(variants),
             "stock_status": stock_status,
             "inventory": inventory
-	    "created_at": product.get("created_at")
+	        "created_at": product.get("created_at")
 
         })
 
