@@ -88,7 +88,7 @@ def shopify_search_products(query: str):
             "image": product.get("image", {}).get("src") if product.get("image") else None,
             "variants_count": len(variants),
             "stock_status": stock_status,
-            "inventory": inventory
+            "inventory": inventory,
 	        "created_at": product.get("created_at")
         })
 
