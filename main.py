@@ -33,9 +33,7 @@ def shopify_get_products():
     return response.json()
 def shopify_search_products(query: str):
     url = f"https://{os.getenv('SHOPIFY_STORE_URL')}/admin/api/2025-10/products.json"
-    headers = {
-        "X-Shopify-Access-Token": os.getenv("SHOPIFY_ACCESS_TOKEN")
-    }
+    headers = {"X-Shopify-Access-Token": os.getenv("SHOPIFY_ACCESS_TOKEN")}
 
     response = requests.get(url, headers=headers)
     data = response.json()
@@ -48,15 +46,55 @@ def shopify_search_products(query: str):
         body = product.get("body_html", "").lower()
         tags = " ".join(product.get("tags", [])).lower()
 
-        if query in title or query in body or query in tags:
-            results.append({
-                "id": product.get("id"),
-                "title": product.get("title"),
-                "price": product.get("variants", [{}])[0].get("price"),
-                "image": product.get("image", {}).get("src") if product.get("image") else None,
-                "handle": product.get("handle"),
-                "variants": product.get("variants"),
-            })
+        # match rules
+        if query not in title and query not in body and query not in tags:
+            continue
+
+        # variants
+        variants = product.get("variants", [])
+        main_variant = variants[0] if variants else {}
+
+        price = float(main_variant.get("price", 0) or 0)
+        compare_at = float(main_variant.get("compare_at_price") or 0)
+
+        on_sale = compare_at > price
+        discount_pct = 0
+        if on_sale:
+            discount_pct = int(((compare_at - price) / compare_at) * 100)
+
+        # voorraad
+        inventory = main_variant.get("inventory_quantity", 0)
+
+        if inventory <= 0:
+            stock_status = "out"
+        elif inventory == 1:
+            stock_status = "low"
+        elif inventory < 10:
+            stock_status = "medium"
+        else:
+            stock_status = "in"
+
+        results.append({
+            "id": product.get("id"),
+            "title": product.get("title"),
+            "handle": product.get("handle"),
+            "price": price,
+            "compare_at": compare_at,
+            "on_sale": on_sale,
+            "discount_pct": discount_pct,
+            "image": product.get("image", {}).get("src") if product.get("image") else None,
+            "variants_count": len(variants),
+            "stock_status": stock_status,
+            "inventory": inventory
+        })
+
+    # --- SORT ---
+    # SALE FIRST → RELEVANCE (titel) → PRICE ASC
+    results.sort(key=lambda p: (
+        not p["on_sale"],  
+        p["title"].startswith(query), 
+        p["price"]
+    ))
 
     return results
 
