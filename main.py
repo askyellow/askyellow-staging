@@ -43,56 +43,55 @@ def shopify_search_products(query: str):
 
     for product in data.get("products", []):
 
-    # Skip concept + archived products
-    if product.get("status") != "active":
-        continue
+        # Skip concept + archived products
+        if product.get("status") != "active":
+            continue
 
-    title = product.get("title", "").lower()
-    body = product.get("body_html", "").lower()
-    tags = " ".join(product.get("tags", [])).lower()
+        title = product.get("title", "").lower()
+        body = product.get("body_html", "").lower()
+        tags = " ".join(product.get("tags", [])).lower()
 
-    if query not in title and query not in body and query not in tags:
-        continue
+        # match rules
+        if query not in title and query not in body and query not in tags:
+            continue
 
-    variants = product.get("variants", [])
-    main_variant = variants[0] if variants else {}
+        variants = product.get("variants", [])
+        main_variant = variants[0] if variants else {}
 
-    price = float(main_variant.get("price", 0) or 0)
-    compare_at = float(main_variant.get("compare_at_price") or 0)
+        price = float(main_variant.get("price", 0) or 0)
+        compare_at = float(main_variant.get("compare_at_price") or 0)
 
-    on_sale = compare_at > price
-    discount_pct = 0
-    if on_sale:
-        discount_pct = int(((compare_at - price) / compare_at) * 100)
+        on_sale = compare_at > price
+        discount_pct = 0
+        if on_sale:
+            discount_pct = int(((compare_at - price) / compare_at) * 100)
 
-    inventory = main_variant.get("inventory_quantity", 0)
+        inventory = main_variant.get("inventory_quantity", 0)
 
-    if inventory <= 0:
-        stock_status = "out"
-    elif inventory == 1:
-        stock_status = "low"
-    elif inventory < 10:
-        stock_status = "medium"
-    else:
-        stock_status = "in"
+        if inventory <= 0:
+            stock_status = "out"
+        elif inventory == 1:
+            stock_status = "low"
+        elif inventory < 10:
+            stock_status = "medium"
+        else:
+            stock_status = "in"
 
-    results.append({
-        "id": product.get("id"),
-        "title": product.get("title"),
-        "handle": product.get("handle"),
-        "price": price,
-        "compare_at": compare_at,
-        "on_sale": on_sale,
-        "discount_pct": discount_pct,
-        "image": product.get("image", {}).get("src") if product.get("image") else None,
-        "variants_count": len(variants),
-        "stock_status": stock_status,
-        "inventory": inventory
-    })
-
+        results.append({
+            "id": product.get("id"),
+            "title": product.get("title"),
+            "handle": product.get("handle"),
+            "price": price,
+            "compare_at": compare_at,
+            "on_sale": on_sale,
+            "discount_pct": discount_pct,
+            "image": product.get("image", {}).get("src") if product.get("image") else None,
+            "variants_count": len(variants),
+            "stock_status": stock_status,
+            "inventory": inventory
+        })
 
     # --- SORT ---
-    # SALE FIRST → RELEVANCE (titel) → PRICE ASC
     results.sort(key=lambda p: (
         not p["on_sale"],  
         p["title"].startswith(query), 
@@ -100,7 +99,6 @@ def shopify_search_products(query: str):
     ))
 
     return results
-
 
 # =============================================================
 # 0. PAD & KNOWLEDGE ENGINE IMPORTS
