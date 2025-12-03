@@ -31,6 +31,34 @@ def shopify_get_products():
     }
     response = requests.get(url, headers=headers)
     return response.json()
+def shopify_search_products(query: str):
+    url = f"https://{os.getenv('SHOPIFY_STORE_URL')}/admin/api/2025-10/products.json"
+    headers = {
+        "X-Shopify-Access-Token": os.getenv("SHOPIFY_ACCESS_TOKEN")
+    }
+
+    response = requests.get(url, headers=headers)
+    data = response.json()
+
+    query = query.lower()
+    results = []
+
+    for product in data.get("products", []):
+        title = product.get("title", "").lower()
+        body = product.get("body_html", "").lower()
+        tags = " ".join(product.get("tags", [])).lower()
+
+        if query in title or query in body or query in tags:
+            results.append({
+                "id": product.get("id"),
+                "title": product.get("title"),
+                "price": product.get("variants", [{}])[0].get("price"),
+                "image": product.get("image", {}).get("src") if product.get("image") else None,
+                "handle": product.get("handle"),
+                "variants": product.get("variants"),
+            })
+
+    return results
 
 
 # =============================================================
@@ -128,6 +156,11 @@ def health():
         "version": APP_VERSION,
         "db_ok": db_ok,
     }
+
+@app.get("/shopify/search")
+def shopify_search(q: str):
+    return shopify_search_products(q)
+
 
 # =============================================================
 # POSTGRES DB FOR USERS / CONVERSATIONS / MESSAGES
