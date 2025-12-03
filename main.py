@@ -208,18 +208,49 @@ async def web_search(payload: dict):
     Doe een live webzoekopdracht naar echte websites die relevant zijn voor:
     '{query}'.
 
-    Geef de resultaten terug in JSON, met voor elk:
-    - title
-    - snippet (korte beschrijving, zonder markdown)
-    - url
-
-    Zorg dat het resultaat ALLEEN een JSON-lijst is, geen extra tekst.
-    Formaat:
+    Geef ALLEEN het volgende JSON-format terug:
     [
-      {{"title": "...", "snippet": "...", "url": "..."}},
+      {{"title": "Titel", "snippet": "Korte beschrijving", "url": "https://..."}},
       ...
     ]
+
+    Geen extra tekst, geen uitleg, geen markdown.
     """
+
+    ai = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    import json
+
+    raw = ai.choices[0].message["content"]
+
+    # 1) Probeer pure JSON
+    try:
+        results = json.loads(raw)
+        return {"results": results}
+    except:
+        pass
+
+    # 2) Fallback — probeer JSON tussen blokhaken te vinden
+    try:
+        start = raw.index("[")
+        end = raw.rindex("]") + 1
+        cleaned = raw[start:end]
+        results = json.loads(cleaned)
+        return {"results": results}
+    except:
+        pass
+
+    # 3) Laatste redmiddel — wrap als tekstresultaat
+    return {"results": [
+        {
+            "title": "Geen gestructureerde resultaten",
+            "snippet": raw[:250],
+            "url": ""
+        }
+    ]}
 
     ai = client.chat.completions.create(
         model="gpt-4.1-mini",
