@@ -25,7 +25,7 @@ import psycopg2.extras
 SHOPIFY_API_VERSION=2025-10
 
 def shopify_get_products():
-    url = f"https://{os.getenv('SHOPIFY_STORE_URL')}/admin/api/2025-10/products.json"
+    url = f"https://{os.getenv('SHOPIFY_STORE_URL')}/admin/api/2025-10/products.json?limit=10"
     headers = {
         "X-Shopify-Access-Token": os.getenv("SHOPIFY_ACCESS_TOKEN")
     }
@@ -89,14 +89,14 @@ def shopify_search_products(query: str):
             "variants_count": len(variants),
             "stock_status": stock_status,
             "inventory": inventory
+	    "created_at": product.get("created_at")
+
         })
 
     # --- SORT ---
-    results.sort(key=lambda p: (
-        not p["on_sale"],  
-        p["title"].startswith(query), 
-        p["price"]
-    ))
+    # --- SORT: newest first (based on Shopify "created_at") ---
+results.sort(key=lambda p: p.get("created_at", ""), reverse=True)
+
 
     return results
 
