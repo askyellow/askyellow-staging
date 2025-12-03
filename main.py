@@ -25,7 +25,7 @@ import psycopg2.extras
 SHOPIFY_API_VERSION=2025-10
 
 def shopify_get_products():
-    url = f"https://{os.getenv('SHOPIFY_STORE_URL')}/admin/api/2025-10/products.json?limit=10"
+    url = f"https://{os.getenv('SHOPIFY_STORE_URL')}/admin/api/2025-10/products.json?limit=20"
     headers = {
         "X-Shopify-Access-Token": os.getenv("SHOPIFY_ACCESS_TOKEN")
     }
