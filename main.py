@@ -42,6 +42,11 @@ def shopify_search_products(query: str):
     results = []
 
     for product in data.get("products", []):
+
+# SKIP DRAFT / ARCHIVED PRODUCTS
+if product.get("status") != "active":
+    continue
+
         title = product.get("title", "").lower()
         body = product.get("body_html", "").lower()
         tags = " ".join(product.get("tags", [])).lower()
