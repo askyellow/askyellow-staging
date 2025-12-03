@@ -90,7 +90,6 @@ def shopify_search_products(query: str):
             "stock_status": stock_status,
             "inventory": inventory
 	        "created_at": product.get("created_at")
-
         })
 
     # --- SORT ---
