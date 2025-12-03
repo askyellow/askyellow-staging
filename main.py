@@ -94,10 +94,10 @@ def shopify_search_products(query: str):
 
     # --- SORT ---
     # --- SORT: newest first (based on Shopify "created_at") ---
-results.sort(key=lambda p: p.get("created_at", ""), reverse=True)
+        results.sort(key=lambda p: p.get("created_at", ""), reverse=True)
 
 
-    return results
+        return results
 
 # =============================================================
 # 0. PAD & KNOWLEDGE ENGINE IMPORTS
