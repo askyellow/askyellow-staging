@@ -217,34 +217,48 @@ async def web_search(payload: dict):
     Geen extra tekst, geen uitleg, geen markdown.
     """
 
-    ai = client.chat.completions.create(
+    # --- Nieuwe Responses API call ---
+    ai = client.responses.create(
         model="gpt-4.1-mini",
-        messages=[{"role": "user", "content": prompt}]
+        input=[{"role": "user", "content": prompt}]
     )
 
     import json
-    raw = ai.choices[0].message["content"]
 
-    # --- 1: Pure JSON proberen ---
+    raw_text = None
+
+    # --- Extract content safely ---
+    for block in ai.output:
+        try:
+            if block.type == "message":
+                raw_text = block.content[0].text
+                break
+        except:
+            pass
+
+    if not raw_text:
+        return {"results": []}
+
+    # --- Probeerslag 1: Direct JSON ---
     try:
-        return {"results": json.loads(raw)}
+        return {"results": json.loads(raw_text)}
     except:
         pass
 
-    # --- 2: JSON tussen blokhaken extraheren ---
+    # --- Probeerslag 2: JSON tussen [...] halen ---
     try:
-        start = raw.index("[")
-        end = raw.rindex("]") + 1
-        cleaned = raw[start:end]
+        start = raw_text.index("[")
+        end = raw_text.rindex("]") + 1
+        cleaned = raw_text[start:end]
         return {"results": json.loads(cleaned)}
     except:
         pass
 
-    # --- 3: Fallback (nooit empty laten zijn) ---
+    # --- Fallback ---
     return {
         "results": [{
-            "title": "Webresultaten niet goed geformatteerd",
-            "snippet": raw[:200],
+            "title": "Webresultaten niet geformatteerd",
+            "snippet": raw_text[:250],
             "url": ""
         }]
     }
