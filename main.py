@@ -277,6 +277,144 @@ async def web_search(payload: dict):
     return {"results": results}
 
 
+
+# =============================================================
+# 3. TOOL ENDPOINTS (WEBSEARCH / SHOPIFY / KNOWLEDGE / IMAGE)
+# =============================================================
+
+# ---- Websearch Tool (Serper) ----
+SERPER_API_KEY = os.getenv("SERPER_API_KEY")
+
+@app.post("/tool/websearch")
+async def tool_websearch(payload: dict):
+    """Proxy naar Serper API voor webresultaten."""
+    query = (payload.get("query") or "").strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="Query missing")
+
+    if not SERPER_API_KEY:
+        raise HTTPException(status_code=500, detail="SERPER_API_KEY ontbreekt op de server")
+
+    url = "https://google.serper.dev/search"
+    headers = {
+        "X-API-KEY": SERPER_API_KEY,
+        "Content-Type": "application/json",
+    }
+    body = {"q": query}
+
+    try:
+        r = requests.post(url, json=body, headers=headers, timeout=10)
+        data = r.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Websearch error: {e}")
+
+    results = []
+    for item in data.get("organic", [])[:4]:
+        results.append({
+            "title": item.get("title"),
+            "snippet": item.get("snippet"),
+            "url": item.get("link"),
+        })
+
+    return {
+        "tool": "websearch",
+        "query": query,
+        "results": results,
+    }
+
+
+# ---- Shopify Search Tool ----
+SHOPIFY_STORE = os.getenv("SHOPIFY_STORE_URL")
+SHOPIFY_ADMIN_TOKEN = os.getenv("SHOPIFY_ACCESS_TOKEN")
+
+@app.post("/tool/shopify_search")
+async def tool_shopify_search(payload: dict):
+    """Zoekt producten in de AskYellow Shopify shop."""
+    query = (payload.get("query") or "").strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="Missing query")
+
+    if not SHOPIFY_STORE or not SHOPIFY_ADMIN_TOKEN:
+        raise HTTPException(status_code=500, detail="Shopify env vars ontbreken")
+
+    url = f"https://{SHOPIFY_STORE}/admin/api/2025-10/products.json?title={query}&limit=5"
+    headers = {"X-Shopify-Access-Token": SHOPIFY_ADMIN_TOKEN}
+
+    try:
+        r = requests.get(url, headers=headers, timeout=10)
+        products = r.json().get("products", [])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Shopify error: {e}")
+
+    results = []
+    for p in products:
+        first_image = (p.get("image") or {}).get("src")
+        variants = p.get("variants") or []
+        main_variant = variants[0] if variants else {}
+
+        price = main_variant.get("price")
+        compare_at = main_variant.get("compare_at_price")
+
+        results.append({
+            "id": p.get("id"),
+            "title": p.get("title"),
+            "handle": p.get("handle"),
+            "url": f"https://shop.askyellow.nl/products/{p.get('handle')}",
+            "image": first_image,
+            "price": price,
+            "compare_at": compare_at,
+            "snippet": (p.get("body_html") or "")[:250],
+        })
+
+    return {
+        "tool": "shopify_search",
+        "query": query,
+        "results": results,
+    }
+
+
+# ---- Knowledge Search Tool ----
+@app.post("/tool/knowledge_search")
+async def tool_knowledge_search(payload: dict):
+    """Maakt gebruik van de bestaande Python knowledge engine."""
+    query = (payload.get("query") or "").strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="Missing query")
+
+    # Gebruik de al geladen KNOWLEDGE_ENTRIES + match_question
+    kb_answer = match_question(query, KNOWLEDGE_ENTRIES)
+    return {
+        "tool": "knowledge_search",
+        "query": query,
+        "answer": kb_answer,
+    }
+
+
+# ---- Image Generation Tool ----
+@app.post("/tool/image_generate")
+async def tool_image_generate(payload: dict):
+    """Genereert een afbeelding via OpenAI gpt-image-1 model."""
+    prompt = (payload.get("prompt") or "").strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Missing prompt")
+
+    try:
+        result = client.images.generate(
+            model="gpt-image-1",
+            prompt=prompt,
+            size="1024x1024",
+        )
+        url = result.data[0].url
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image generation error: {e}")
+
+    return {
+        "tool": "image_generate",
+        "prompt": prompt,
+        "url": url,
+    }
+
+
 # =============================================================
 # POSTGRES DB FOR USERS / CONVERSATIONS / MESSAGES
 # =============================================================
@@ -491,6 +629,21 @@ def build_system_prompt() -> str:
     return system_prompt.strip()
 
 SYSTEM_PROMPT = build_system_prompt()
+
+# Extra uitleg aan het model over beschikbare backend tools
+SYSTEM_PROMPT += """
+[TOOLCALL RULES]
+Je draait binnen YellowMind. De backend heeft eigen tools:
+- websearch(query): haal recente webresultaten op.
+- shopify_search(query): zoek producten in de AskYellow shop.
+- knowledge_search(query): raadpleeg de AskYellow kennisbank.
+- image_generate(prompt): genereer een illustratie.
+
+Gebruik deze tools alleen als ze echt helpen.
+Verzamel eerst je gedachten, kies dan maximaal de paar meest relevante tools.
+Na een tool-call leg je de resultaten in je eigen woorden uit.
+"""
+
 KNOWLEDGE_ENTRIES = load_knowledge()
 
 # =============================================================
