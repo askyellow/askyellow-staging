@@ -515,8 +515,25 @@ async def tool_knowledge_search(payload: dict):
 
 
 # ---- Image Generation Tool ----
+
+# ===== IMAGE GENERATION AUTH CHECK =====
+def require_auth_session(request: Request):
+    """Controleer of de gebruiker is ingelogd aan de hand van session-id."""
+    session_id = request.headers.get("X-Session-Id") or ""
+    if not session_id:
+        raise HTTPException(status_code=403, detail="Login vereist voor image generation")
+
+    conn = get_db_conn()
+    user = get_user_from_session(conn, session_id)
+    conn.close()
+
+    if not user:
+        raise HTTPException(status_code=403, detail="Ongeldige of verlopen sessie")
+
 @app.post("/tool/image_generate")
-async def tool_image_generate(payload: dict):
+async def tool_image_generate(request: Request, payload: dict):
+    require_auth_session(request)
+
     """Genereert een afbeelding via OpenAI gpt-image-1 model."""
     prompt = (payload.get("prompt") or "").strip()
     if not prompt:
