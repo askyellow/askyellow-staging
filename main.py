@@ -22,17 +22,17 @@ import psycopg2.extras
 # SHOPIFY FUNCTIONS
 # =============================================================
 
-SHOPIFY_API_VERSION=2025-10
+SHOPIFY_API_VERSION = "2025-10"
 
 def shopify_get_products():
-    url = f"https://{os.getenv('SHOPIFY_STORE_URL')}/admin/api/2025-10/products.json?limit=20"
+    url = f"https://{os.getenv('SHOPIFY_STORE_URL')}/admin/api/{SHOPIFY_API_VERSION}/products.json?limit=20"
     headers = {
         "X-Shopify-Access-Token": os.getenv("SHOPIFY_ACCESS_TOKEN")
     }
     response = requests.get(url, headers=headers)
     return response.json()
 def shopify_search_products(query: str):
-    url = f"https://{os.getenv('SHOPIFY_STORE_URL')}/admin/api/2025-10/products.json"
+    url = f"https://{os.getenv('SHOPIFY_STORE_URL')}/admin/api/{SHOPIFY_API_VERSION}/products.json"
     headers = {"X-Shopify-Access-Token": os.getenv("SHOPIFY_ACCESS_TOKEN")}
 
     response = requests.get(url, headers=headers)
@@ -92,12 +92,10 @@ def shopify_search_products(query: str):
 	        "created_at": product.get("created_at")
         })
 
-    # --- SORT ---
     # --- SORT: newest first (based on Shopify "created_at") ---
-        results.sort(key=lambda p: p.get("created_at", ""), reverse=True)
+    results.sort(key=lambda p: p.get("created_at", ""), reverse=True)
 
-
-        return results
+    return results
 
 # =============================================================
 # 0. PAD & KNOWLEDGE ENGINE IMPORTS
@@ -178,9 +176,7 @@ def health():
     """Eenvoudige healthcheck met DB-status en environment-info."""
     db_ok = True
     try:
-        # get_db wordt later in dit bestand gedefinieerd,
-        # maar hier pas bij aanroep gebruikt → geen NameError meer.
-        db = get_db()
+        db = get_db_conn()
         cur = db.cursor()
         cur.execute("SELECT 1")
         cur.close()
@@ -261,20 +257,6 @@ async def web_search(payload: dict):
             "url": ""
         }]
     }
-
-    ai = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[{"role": "user", "content": prompt}]
-    )
-
-    import json
-    try:
-        online = ai.choices[0].message["content"]
-        results = json.loads(online)
-    except Exception:
-        results = []
-
-    return {"results": results}
 
 
 
@@ -619,6 +601,32 @@ def init_db():
             role TEXT NOT NULL,
             content TEXT NOT NULL,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        """
+    )
+
+    # Auth users: aparte tabel voor geregistreerde accounts
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS auth_users (
+            id SERIAL PRIMARY KEY,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            first_name TEXT NOT NULL,
+            last_name TEXT NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            last_login TIMESTAMPTZ
+        );
+        """
+    )
+
+    # User sessions voor ingelogde gebruikers
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS user_sessions (
+            session_id TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
+            expires_at TIMESTAMPTZ NOT NULL
         );
         """
     )
@@ -1274,7 +1282,7 @@ def get_user_from_session(conn, session_id: str):
     cur = conn.cursor()
     cur.execute("""
         SELECT u.id, u.email, u.created_at, u.first_name, u.last_name
-        FROM users u
+        FROM auth_users u
         JOIN user_sessions s ON s.user_id = u.id
         WHERE s.session_id = %s
         AND s.expires_at > NOW()
@@ -1301,7 +1309,7 @@ def register(data: RegisterInput):
         conn.close()
         raise HTTPException(status_code=400, detail="Vul je voor- en achternaam in.")
 
-    cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+    cur.execute("SELECT id FROM auth_users WHERE email = %s", (email,))
     if cur.fetchone():
         conn.close()
         raise HTTPException(status_code=400, detail="Email bestaat al.")
@@ -1309,7 +1317,7 @@ def register(data: RegisterInput):
     pw_hash = hash_password(pw)
 
     cur.execute("""
-        INSERT INTO users (email, password_hash, first_name, last_name, created_at)
+        INSERT INTO auth_users (email, password_hash, first_name, last_name, created_at)
         VALUES (%s, %s, %s, %s, NOW())
         RETURNING id
     """, (email, pw_hash, first, last))
@@ -1346,7 +1354,7 @@ def login(data: LoginInput):
     # Haal ook first_name en last_name op
     cur.execute("""
         SELECT id, password_hash, first_name, last_name
-        FROM users
+        FROM auth_users
         WHERE email = %s
     """, (email,))
     row = cur.fetchone()
@@ -1360,7 +1368,7 @@ def login(data: LoginInput):
     last = row["last_name"]
 
     # Update last login
-    cur.execute("UPDATE users SET last_login = NOW() WHERE id = %s", (user_id,))
+    cur.execute("UPDATE auth_users SET last_login = NOW() WHERE id = %s", (user_id,))
 
     # Maak nieuwe sessie
     session_id = create_user_session(conn, user_id)
