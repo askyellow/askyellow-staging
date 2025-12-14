@@ -1277,11 +1277,51 @@ def create_user_session(conn, user_id: int) -> str:
     session_id = "auth-" + secrets.token_hex(32)
     expires = datetime.datetime.utcnow() + datetime.timedelta(days=14)
     cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO user_sessions (session_id, user_id, expires_at) VALUES (%s, %s, %s)",
+    @router.post("/auth/login")
+def login(data: LoginInput):
+    email = data.email.strip().lower()
+    password = data.password
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    # 1️⃣ User ophalen
+    cursor.execute(
+        "SELECT id, email, first_name, password_hash FROM users WHERE email = %s",
+        (email,)
+    )
+    user = cursor.fetchone()
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Ongeldige login")
+
+    # 2️⃣ Wachtwoord check
+    if not verify_password(password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Ongeldige login")
+
+    user_id = user["id"]
+
+    # 3️⃣ Session maken
+    session_id = str(uuid.uuid4())
+    expires = datetime.utcnow() + timedelta(days=30)
+
+    cursor.execute(
+        """
+        INSERT INTO user_sessions (session_id, user_id, expires_at)
+        VALUES (%s, %s, %s)
+        """,
         (session_id, user_id, expires)
     )
-    return session_id
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return {
+        "success": True,
+        "session": session_id,
+        "first_name": user["first_name"]
+    }
 
 def get_user_from_session(conn, session_id: str):
     cur = conn.cursor()
