@@ -17,6 +17,7 @@ import secrets
 # DB
 import psycopg2
 import psycopg2.extras
+import RealDictCursor
 
 # =============================================================
 # SHOPIFY FUNCTIONS
