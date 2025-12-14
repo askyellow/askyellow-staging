@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, JSONResponse
 from dotenv import load_dotenv
 from openai import OpenAI
-from datetime import datetime
 from chat_engine.routes import router as chat_router
 from fastapi.responses import FileResponse
 import os
@@ -1250,7 +1249,6 @@ def admin_stats(key: str, db=Depends(get_db)):
 from pydantic import BaseModel
 import bcrypt
 import secrets
-import datetime
 
 
 # -----------------------------
