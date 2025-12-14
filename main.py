@@ -1283,7 +1283,7 @@ def login(data: LoginInput):
     email = data.email.strip().lower()
     password = data.password
 
-    conn = get_db_connection()
+    conn = get_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
     # 1️⃣ User ophalen
