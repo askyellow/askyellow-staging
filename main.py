@@ -1277,7 +1277,7 @@ def create_user_session(conn, user_id: int) -> str:
     session_id = "auth-" + secrets.token_hex(32)
     expires = datetime.datetime.utcnow() + datetime.timedelta(days=14)
     cur = conn.cursor()
-    @router.post("/auth/login")
+@router.post("/auth/login")
 def login(data: LoginInput):
     email = data.email.strip().lower()
     password = data.password
