@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, JSONResponse
 from dotenv import load_dotenv
 from openai import OpenAI
-from datetime import datetime
+from datetime import datetime, timedelta
 from chat_engine.routes import router as chat_router
 from fastapi.responses import FileResponse
 import os
@@ -12,7 +12,7 @@ import requests
 import unicodedata
 import re
 import secrets
-
+import uuid
 
 # DB
 import psycopg2
