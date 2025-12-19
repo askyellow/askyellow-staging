@@ -547,6 +547,60 @@ async def tool_image_generate(request: Request, payload: dict):
         "url": url,
     }
 
+@app.post("/chat/start")
+def chat_start(data: dict):
+    session_id = data.get("session_id")
+    if not session_id:
+        return {"messages": []}
+
+    conn = get_db_conn()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    # 1️⃣ User ophalen via session_id
+    cur.execute(
+        "SELECT id FROM users WHERE session_id = %s",
+        (session_id,)
+    )
+    user = cur.fetchone()
+    if not user:
+        conn.close()
+        return {"messages": []}
+
+    # 2️⃣ Laatste conversation ophalen
+    cur.execute(
+        """
+        SELECT id
+        FROM conversations
+        WHERE user_id = %s
+        ORDER BY last_message_at DESC
+        LIMIT 1
+        """,
+        (user["id"],)
+    )
+    conv = cur.fetchone()
+    if not conv:
+        conn.close()
+        return {"messages": []}
+
+    # 3️⃣ Berichten ophalen
+    cur.execute(
+        """
+        SELECT role, content
+        FROM messages
+        WHERE conversation_id = %s
+        ORDER BY created_at ASC
+        """,
+        (conv["id"],)
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    return {
+        "messages": [
+            {"role": r["role"], "content": r["content"]}
+            for r in rows
+        ]
+    }
 
 # =============================================================
 # POSTGRES DB FOR USERS / CONVERSATIONS / MESSAGES
