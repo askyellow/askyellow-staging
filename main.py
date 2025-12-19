@@ -1123,28 +1123,20 @@ if sql_match and sql_match["score"] >= 60:
     print(f"[AI] {ai_ms} ms")
     print(f"[TOTAL] {total_ms} ms")
 
-    # =============================================================
-    # DATABASE LOGGING (SAFE)
-    # =============================================================
-   
-try:
-    cur.execute(
-        """
-        _log_message_safe(session_id, question, final_answer)
-        VALUES (%s, %s, %s);
-        """,
-        (chat_session_id, "assistant", final_answer)
-    )
-   
-    return {
-        "answer": final_answer,
-        "output": raw_output,
-        "source": "yellowmind_llm",
-        "kb_used": bool(kb_answer),
-        "sql_used": bool(sql_match),
-        "sql_score": sql_match["score"] if sql_match else None,
-        "hints": hints
-    }
+   # ============================================================
+# DATABASE LOGGING (SAFE)
+# ============================================================
+_log_message_safe(session_id, question, final_answer)
+
+return {
+    "answer": final_answer,
+    "output": raw_output,
+    "source": "yellowmind_llm",
+    "kb_used": bool(kb_answer),
+    "sql_used": bool(sql_match),
+    "sql_score": sql_match["score"] if sql_match else None,
+    "hints": hints
+}
 
 
 def _log_message_safe(session_id, question, final_answer):
