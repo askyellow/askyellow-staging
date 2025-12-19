@@ -19,6 +19,9 @@ import uuid
 import psycopg2
 import psycopg2.extras
 from psycopg2.extras import RealDictCursor
+# chat
+from chat_engine.db import get_conn
+from chat_engine.utils import get_logical_date
 
 # =============================================================
 # SHOPIFY FUNCTIONS
@@ -994,8 +997,57 @@ async def ask_ai(request: Request):
         or ""
     )
     session_id = str(session_id).strip()
-    if not session_id:
-        session_id = "anon-" + secrets.token_hex(8)
+    # 🔐 chat_engine logging (user message)
+try:
+    user_id = data.get("user_name") or session_id
+    logical_date = get_logical_date()
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    # actieve chatsessie ophalen of maken
+    cur.execute(
+        """
+        SELECT id FROM chat_sessions
+        WHERE user_id=%s AND session_date=%s AND is_active=TRUE
+        LIMIT 1;
+        """,
+        (user_id, logical_date)
+    )
+    row = cur.fetchone()
+
+    if row:
+        chat_session_id = row["id"]
+    else:
+        cur.execute(
+            """
+            INSERT INTO chat_sessions (user_id, session_date)
+            VALUES (%s, %s)
+            RETURNING id;
+            """,
+            (user_id, logical_date)
+        )
+        chat_session_id = cur.fetchone()["id"]
+        conn.commit()
+
+    # user bericht opslaan
+    cur.execute(
+        """
+        _log_message_safe(session_id, question, final_answer)
+        VALUES (%s, %s, %s);
+        """,
+        (chat_session_id, "user", question)
+    )
+    conn.commit()
+
+except Exception as e:
+    # logging mag chat NOOIT breken
+    print("chat_engine logging (user) faalde:", e)
+
+   
+except Exception as e:
+    # logging mag chat NOOIT breken
+    print("chat_engine logging (user) faalde:", e)
 
     # FINAL ANSWER SAFETY NET
     final_answer = None
@@ -1014,8 +1066,7 @@ async def ask_ai(request: Request):
     identity_answer = try_identity_origin_answer(question, language)
     if identity_answer:
         final_answer = identity_answer
-        _log_message_safe(session_id, question, final_answer)
-        return {
+           return {
             "answer": final_answer,
             "output": [],
             "source": "identity_origin",
@@ -1031,7 +1082,6 @@ async def ask_ai(request: Request):
     sql_match = search_sql_knowledge(question)
     if sql_match and sql_match["score"] >= 60:
         final_answer = sql_match["answer"]
-        _log_message_safe(session_id, question, final_answer)
         return {
             "answer": final_answer,
             "output": [],
@@ -1092,8 +1142,16 @@ async def ask_ai(request: Request):
     # =============================================================
     # DATABASE LOGGING (SAFE)
     # =============================================================
-    _log_message_safe(session_id, question, final_answer)
-
+   
+try:
+    cur.execute(
+        """
+        _log_message_safe(session_id, question, final_answer)
+        VALUES (%s, %s, %s);
+        """,
+        (chat_session_id, "assistant", final_answer)
+    )
+   
     return {
         "answer": final_answer,
         "output": raw_output,
@@ -1387,46 +1445,3 @@ def register(data: RegisterInput):
     }
 
 
-# =============================================================
-#  LOGIN
-# =============================================================
-@app.post("/auth/login")
-def login(data: LoginInput):
-    conn = get_db_conn()
-    cur = conn.cursor()
-
-    email = data.email.strip().lower()
-    pw = data.password.strip()
-
-    # Haal ook first_name en last_name op
-    cur.execute("""
-        SELECT id, password_hash, first_name, last_name
-        FROM auth_users
-        WHERE email = %s
-    """, (email,))
-    row = cur.fetchone()
-
-    if not row or not verify_password(pw, row["password_hash"]):
-        conn.close()
-        raise HTTPException(status_code=400, detail="Ongeldige login.")
-
-    user_id = row["id"]
-    first = row["first_name"]
-    last = row["last_name"]
-
-    # Update last login
-    cur.execute("UPDATE auth_users SET last_login = NOW() WHERE id = %s", (user_id,))
-
-    # Maak nieuwe sessie
-    session_id = create_user_session(conn, user_id)
-
-    conn.commit()
-    conn.close()
-
-    return {
-        "success": True,
-        "session": session_id,
-        "user_id": user_id,
-        "first_name": first,
-        "last_name": last
-    }
