@@ -985,10 +985,13 @@ def detect_cold_start(sql_ms, kb_ms, ai_ms, total_ms):
 @app.post("/ask")
 async def ask_ai(request: Request):
     data = await request.json()
+
     question = (data.get("question") or "").strip()
     language = (data.get("language") or "nl").lower()
 
-    # session_id
+    # -----------------------------
+    # Session ID bepalen
+    # -----------------------------
     session_id = (
         data.get("session_id")
         or data.get("sessionId")
@@ -997,427 +1000,109 @@ async def ask_ai(request: Request):
         or ""
     )
     session_id = str(session_id).strip()
-    # 🔐 chat_engine logging (user message)
-try:
-    user_id = data.get("user_name") or session_id
-    logical_date = get_logical_date()
+    if not session_id:
+        session_id = "anon-" + secrets.token_hex(8)
 
-    conn = get_conn()
-    cur = conn.cursor()
-
-    # actieve chatsessie ophalen of maken
-    cur.execute(
-        """
-        SELECT id FROM chat_sessions
-        WHERE user_id=%s AND session_date=%s AND is_active=TRUE
-        LIMIT 1;
-        """,
-        (user_id, logical_date)
-    )
-    row = cur.fetchone()
-
-    if row:
-        chat_session_id = row["id"]
-    else:
-        cur.execute(
-            """
-            INSERT INTO chat_sessions (user_id, session_date)
-            VALUES (%s, %s)
-            RETURNING id;
-            """,
-            (user_id, logical_date)
-        )
-        chat_session_id = cur.fetchone()["id"]
-        conn.commit()
-
-    # user bericht opslaan
-    cur.execute(
-        """
-        _log_message_safe(session_id, question, final_answer)
-        VALUES (%s, %s, %s);
-        """,
-        (chat_session_id, "user", question)
-    )
-    conn.commit()
-
-except Exception as e:
-    # logging mag chat NOOIT breken
-    print("chat_engine logging (user) faalde:", e)
-
-   
-except Exception as e:
-    # logging mag chat NOOIT breken
-    print("chat_engine logging (user) faalde:", e)
-
-    # FINAL ANSWER SAFETY NET
-    final_answer = None
-    raw_output = []
-
+    # -----------------------------
+    # Safety: geen vraag
+    # -----------------------------
     if not question:
-        final_answer = "Geen vraag ontvangen."
         return JSONResponse(
             status_code=400,
-            content={"error": final_answer},
+            content={"error": "Geen vraag ontvangen."}
         )
+
+    # -----------------------------
+    # Init
+    # -----------------------------
+    final_answer = None
+    raw_output = []
+    kb_answer = None
+    sql_match = None
+    hints = {}
 
     # =============================================================
     # 1. QUICK IDENTITY
     # =============================================================
     identity_answer = try_identity_origin_answer(question, language)
-if identity_answer:
-    final_answer = identity_answer
-
+    if identity_answer:
+        final_answer = identity_answer
 
     # =============================================================
     # 2. SQL KNOWLEDGE
     # =============================================================
-    sql_match = search_sql_knowledge(question)
-if sql_match and sql_match["score"] >= 60:
-    final_answer = sql_match["answer"]
-
+    if not final_answer:
+        sql_match = search_sql_knowledge(question)
+        if sql_match and sql_match.get("score", 0) >= 60:
+            final_answer = sql_match["answer"]
 
     # =============================================================
     # 3. JSON KNOWLEDGE ENGINE
     # =============================================================
-    try:
-        kb_answer = match_question(question, KNOWLEDGE_ENTRIES)
-    except:
-        kb_answer = None
+    if not final_answer:
+        try:
+            kb_answer = match_question(question, KNOWLEDGE_ENTRIES)
+            if kb_answer:
+                final_answer = kb_answer
+        except Exception:
+            kb_answer = None
 
     hints = detect_hints(question)
 
     # =============================================================
     # 4. LLM FALLBACK
     # =============================================================
-    start_ai = time.time()
-    final_answer, raw_output = call_yellowmind_llm(
-        question, language, kb_answer, sql_match, hints
-    )
+    if not final_answer:
+        start_ai = time.time()
+        final_answer, raw_output = call_yellowmind_llm(
+            question, language, kb_answer, sql_match, hints
+        )
+        ai_ms = int((time.time() - start_ai) * 1000)
+    else:
+        ai_ms = 0
 
-    # FINAL ANSWER SAFETY
+    # -----------------------------
+    # Final safety
+    # -----------------------------
     if not final_answer:
         final_answer = "⚠️ Geen geldig antwoord beschikbaar."
 
     # =============================================================
-    # PERFORMANCE LOGGING
+    # PERFORMANCE LOGGING (optioneel)
     # =============================================================
     sql_ms = 0
     kb_ms = 0
-    ai_ms = int((time.time() - start_ai) * 1000)
     total_ms = ai_ms
 
     try:
-        for block in raw_output:
+        for block in raw_output or []:
             if hasattr(block, "type") and block.type == "response.stats":
                 sql_ms = getattr(block, "sql_ms", 0)
                 kb_ms = getattr(block, "kb_ms", 0)
                 total_ms = getattr(block, "total_ms", ai_ms)
-    except:
+    except Exception:
         pass
 
     status = detect_cold_start(sql_ms, kb_ms, ai_ms, total_ms)
+    print(f"[STATUS] {status} | SQL {sql_ms} ms | KB {kb_ms} ms | AI {ai_ms} ms")
 
-    print(f"[STATUS] {status}")
-    print(f"[SQL] {sql_ms} ms")
-    print(f"[KB] {kb_ms} ms")
-    print(f"[AI] {ai_ms} ms")
-    print(f"[TOTAL] {total_ms} ms")
-
-   # ============================================================
-# DATABASE LOGGING (SAFE)
-# ============================================================
-_log_message_safe(session_id, question, final_answer)
-
-return {
-    "answer": final_answer,
-    "output": raw_output,
-    "source": "yellowmind_llm",
-    "kb_used": bool(kb_answer),
-    "sql_used": bool(sql_match),
-    "sql_score": sql_match["score"] if sql_match else None,
-    "hints": hints
-}
-
-
-def _log_message_safe(session_id, question, final_answer):
-    """Veilig loggen zonder dat fouten de assistent breken."""
+    # =============================================================
+    # DATABASE LOGGING (SAFE)
+    # =============================================================
     try:
-        conn = get_db_conn()
-        user_id = get_or_create_user(conn, session_id)
-        conv_id = get_or_create_conversation(conn, user_id)
-
-        save_message(conn, conv_id, "user", question)
-        save_message(conn, conv_id, "assistant", final_answer)
-
-        conn.commit()
-        conn.close()
+        _log_message_safe(session_id, question, final_answer)
     except Exception as e:
-        print("❌ DB logging error:", e)
+        print("❌ chat_engine logging faalde:", e)
 
-
-# =============================================================
-# 8. LOCAL DEV
-# =============================================================
-
-
-# =============================================================
-# 9. ADMIN ENDPOINTS (PostgreSQL)
-# =============================================================
-
-ADMIN_KEY = "Yellow_Master_Mind!"
-
-def admin_auth(key: str):
-    if key != ADMIN_KEY:
-        raise HTTPException(status_code=403, detail="Forbidden")
-
-
-@app.get("/admin/messages")
-def admin_messages(key: str, db=Depends(get_db)):
-    """Laatste 50 berichten (incl. sessie & conversation info)."""
-    admin_auth(key)
-    cur = db.cursor()
-    cur.execute(
-        """
-        SELECT
-            m.id,
-            m.created_at,
-            m.role,
-            m.content,
-            m.conversation_id,
-            c.user_id,
-            u.session_id
-        FROM messages m
-        JOIN conversations c ON m.conversation_id = c.id
-        JOIN users u ON c.user_id = u.id
-        ORDER BY m.created_at DESC, m.id DESC
-        LIMIT 50
-        """
-    )
-    rows = cur.fetchall()
-    return rows
-
-
-@app.get("/admin/conversations")
-def admin_conversations(key: str, db=Depends(get_db)):
-    """Overzicht van alle conversaties."""
-    admin_auth(key)
-    cur = db.cursor()
-    cur.execute(
-        """
-        SELECT
-            c.id,
-            c.started_at,
-            c.last_message_at,
-            u.session_id
-        FROM conversations c
-        JOIN users u ON c.user_id = u.id
-        ORDER BY c.last_message_at DESC, c.id DESC
-        """
-    )
-    return cur.fetchall()
-
-
-@app.get("/admin/conversation/{conv_id}")
-def admin_conversation(conv_id: int, key: str, db=Depends(get_db)):
-    """Alle berichten van één conversatie."""
-    admin_auth(key)
-    cur = db.cursor()
-    cur.execute(
-        """
-        SELECT
-            m.id,
-            m.created_at,
-            m.role,
-            m.content
-        FROM messages m
-        WHERE m.conversation_id = %s
-        ORDER BY m.created_at ASC, m.id ASC
-        """,
-        (conv_id,),
-    )
-    return cur.fetchall()
-
-
-@app.get("/admin/stats")
-def admin_stats(key: str, db=Depends(get_db)):
-    """Simpele stats voor dashboard."""
-    admin_auth(key)
-    cur = db.cursor()
-
-    cur.execute("SELECT COUNT(*) AS cnt FROM users")
-    users = cur.fetchone()["cnt"]
-
-    cur.execute("SELECT COUNT(*) AS cnt FROM conversations")
-    conversations = cur.fetchone()["cnt"]
-
-    cur.execute("SELECT COUNT(*) AS cnt FROM messages")
-    messages = cur.fetchone()["cnt"]
-
-    cur.execute(
-        """
-        SELECT
-            m.id,
-            m.created_at,
-            m.role,
-            m.content,
-            m.conversation_id
-        FROM messages m
-        ORDER BY m.created_at DESC, m.id DESC
-        LIMIT 1
-        """
-    )
-    last_msg = cur.fetchone()
-
+    # =============================================================
+    # RESPONSE
+    # =============================================================
     return {
-        "users": users,
-        "conversations": conversations,
-        "messages": messages,
-        "last_message": last_msg,
+        "answer": final_answer,
+        "output": raw_output,
+        "source": "yellowmind_llm",
+        "kb_used": bool(kb_answer),
+        "sql_used": bool(sql_match),
+        "sql_score": sql_match["score"] if sql_match else None,
+        "hints": hints
     }
-
-# =============================================================
-#  AUTH SYSTEM (REGISTER, LOGIN, ME, LOGOUT)
-#  Compatible with existing get_db_conn() usage
-# =============================================================
-
-from pydantic import BaseModel
-import bcrypt
-import secrets
-
-
-# -----------------------------
-#  Pydantic Models
-# -----------------------------
-class RegisterInput(BaseModel):
-    email: str
-    password: str
-    first_name: str
-    last_name: str
-
-class LoginInput(BaseModel):
-    email: str
-    password: str
-
-
-# -----------------------------
-#  Helper Functions
-# -----------------------------
-def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-
-def verify_password(password: str, hashed: str) -> bool:
-    return bcrypt.checkpw(password.encode(), hashed.encode())
-
-def create_user_session(conn, user_id: int) -> str:
-    session_id = "auth-" + secrets.token_hex(32)
-    expires = datetime.datetime.utcnow() + datetime.timedelta(days=14)
-    cur = conn.cursor()
-
-@app.post("/auth/login")
-def login(data: LoginInput):
-    email = data.email.strip().lower()
-    password = data.password
-
-    conn = get_db_conn()
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
-
-    # 1️⃣ User ophalen
-    cursor.execute(
-        "SELECT id, email, first_name, password_hash FROM users WHERE email = %s",
-        (email,)
-    )
-    user = cursor.fetchone()
-
-    if not user:
-        raise HTTPException(status_code=401, detail="Ongeldige login")
-
-    # 2️⃣ Wachtwoord check
-    if not verify_password(password, user["password_hash"]):
-        raise HTTPException(status_code=401, detail="Ongeldige login")
-
-    user_id = user["id"]
-
-    # 3️⃣ Session maken
-    session_id = str(uuid.uuid4())
-    expires = datetime.utcnow() + timedelta(days=30)
-
-    cursor.execute(
-        """
-        INSERT INTO user_sessions (session_id, user_id, expires_at)
-        VALUES (%s, %s, %s)
-        """,
-        (session_id, user_id, expires)
-    )
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-    return {
-        "success": True,
-        "session": session_id,
-        "first_name": user["first_name"]
-    }
-
-def get_user_from_session(conn, session_id: str):
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT u.id, u.email, u.created_at, u.first_name, u.last_name
-        FROM auth_users u
-        JOIN user_sessions s ON s.user_id = u.id
-        WHERE s.session_id = %s
-        AND s.expires_at > NOW()
-    """, (session_id,))
-    return cur.fetchone()
-# =============================================================
-#  REGISTER
-# =============================================================
-@app.post("/auth/register")
-def register(data: RegisterInput):
-    conn = get_db_conn()
-    cur = conn.cursor()
-
-    email = data.email.strip().lower()
-    pw = data.password.strip()
-    first = data.first_name.strip()
-    last = data.last_name.strip()
-
-    if len(pw) < 6:
-        conn.close()
-        raise HTTPException(status_code=400, detail="Wachtwoord is te kort (minimaal 6 tekens).")
-
-    if not first or not last:
-        conn.close()
-        raise HTTPException(status_code=400, detail="Vul je voor- en achternaam in.")
-
-    cur.execute("SELECT id FROM auth_users WHERE email = %s", (email,))
-    if cur.fetchone():
-        conn.close()
-        raise HTTPException(status_code=400, detail="Email bestaat al.")
-
-    pw_hash = hash_password(pw)
-
-    cur.execute("""
-        INSERT INTO auth_users (email, password_hash, first_name, last_name, created_at)
-        VALUES (%s, %s, %s, %s, NOW())
-        RETURNING id
-    """, (email, pw_hash, first, last))
-    
-    row = cur.fetchone()
-    user_id = row["id"]
-
-    # Maak sessie
-    session_id = create_user_session(conn, user_id)
-
-    conn.commit()
-    conn.close()
-
-    return {
-        "success": True,
-        "session": session_id,
-        "user_id": user_id,
-        "first_name": first,
-        "last_name": last
-    }
-
-
