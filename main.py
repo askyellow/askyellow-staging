@@ -1064,33 +1064,17 @@ except Exception as e:
     # 1. QUICK IDENTITY
     # =============================================================
     identity_answer = try_identity_origin_answer(question, language)
-    if identity_answer:
-        final_answer = identity_answer
-           return {
-            "answer": final_answer,
-            "output": [],
-            "source": "identity_origin",
-            "kb_used": False,
-            "sql_used": False,
-            "sql_score": None,
-            "hints": {}
-        }
+if identity_answer:
+    final_answer = identity_answer
+
 
     # =============================================================
     # 2. SQL KNOWLEDGE
     # =============================================================
     sql_match = search_sql_knowledge(question)
-    if sql_match and sql_match["score"] >= 60:
-        final_answer = sql_match["answer"]
-        return {
-            "answer": final_answer,
-            "output": [],
-            "source": "sql",
-            "kb_used": False,
-            "sql_used": True,
-            "sql_score": sql_match["score"],
-            "hints": {}
-        }
+if sql_match and sql_match["score"] >= 60:
+    final_answer = sql_match["answer"]
+
 
     # =============================================================
     # 3. JSON KNOWLEDGE ENGINE
