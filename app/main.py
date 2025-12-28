@@ -911,9 +911,6 @@ def get_recent_messages(conversation_id, limit=12):
 def startup_event():
     on_startup()
 
-       from passlib.context import CryptContext
-
-
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
