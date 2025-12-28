@@ -33,18 +33,6 @@ from app.core.config import (
 from app.core.startup import on_startup
 
 
-pwd_context = CryptContext(
-    schemes=["bcrypt_sha256", "scrypt"],
-    deprecated="auto"
-)
-
-resend.api_key = os.getenv("RESEND_API_KEY")
-
-def normalize_password(password: str) -> str:
-    if not password:
-        return ""
-    return password.strip()
-
 
 # =============================================================
 # SHOPIFY FUNCTIONS
