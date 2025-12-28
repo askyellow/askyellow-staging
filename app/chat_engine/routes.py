@@ -1,8 +1,8 @@
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from chat_engine.db import get_conn
-from chat_engine.utils import get_logical_date
+from app.chat_engine.db import get_conn
+from app.chat_engine.utils import get_logical_date
 
 router = APIRouter()
 
