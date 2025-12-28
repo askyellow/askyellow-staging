@@ -1724,4 +1724,16 @@ async def ask_ai(request: Request):
             status_code=500,
             content={"error": "Internal server error"}
         )
+if __name__ == "__main__":
+    import uvicorn
+    import os
+
+    port = int(os.environ.get("PORT", 10000))
+
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=False,
+    )
 
