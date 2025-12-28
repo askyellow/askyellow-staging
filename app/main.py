@@ -1,29 +1,9 @@
-from fastapi import FastAPI, Request, HTTPException, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response, JSONResponse, FileResponse
-from dotenv import load_dotenv
-from openai import OpenAI
+from fastapi import FastAPI
+from app.routes.routes import router as main_router
+from app.core.lifespan import lifespan
 
-import os
-import uvicorn
-import requests
-import unicodedata
-import re
-import secrets
-import resend
-from datetime import datetime, timedelta
-import uuid
-import traceback
-
-# DB extern
-import psycopg2
-import psycopg2.extras
-from psycopg2.extras import RealDictCursor
-
-# 🔥 ALLES VAN ONS = app.*
-from app.chat_engine.routes import router as chat_router
-from app.chat_engine.db import get_conn
-from app.chat_engine.utils import get_logical_date
+app = FastAPI(lifespan=lifespan)
+app.include_router(main_router)
 
 from app.core.config import (
     APP_ENV,
@@ -1736,4 +1716,3 @@ if __name__ == "__main__":
         port=port,
         reload=False,
     )
-
