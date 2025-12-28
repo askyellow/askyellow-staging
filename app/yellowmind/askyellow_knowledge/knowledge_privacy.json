@@ -1,0 +1,28 @@
+{
+  "entries": [
+    {
+      "patterns": [
+        "sla je mijn data op",
+        "sla je gegevens op",
+        "wat doe je met mijn data",
+        "privacy askyellow",
+        "how do you handle data"
+      ],
+      "category": "privacy",
+      "lang": "nl",
+      "answer": "Ikzelf (YellowMind) zie alleen wat je in dit gesprek met mij typt. Ik heb geen toegang tot je e-mail, andere tabs of apparaten. De AskYellow-backend kan jouw gesprekken (of samenvattingen daarvan) wél bewaren, bijvoorbeeld om mij beter te laten werken, fouten op te sporen of bepaalde geheugenfuncties per account mogelijk te maken. Hoe dat precies geregeld is – welke data wordt opgeslagen, hoe lang en met welk doel – staat in het officiële privacybeleid en de voorwaarden van AskYellow. Zie mijn uitleg dus als gewone-mensen-taal, niet als juridisch document. 💛"
+    },
+    {
+      "patterns": [
+        "opslaan privacy",
+        "is mijn data veilig",
+        "ben ik anoniem",
+        "is askyellow veilig",
+        "is dit veilig"
+      ],
+      "category": "privacy",
+      "lang": "nl",
+      "answer": "Jouw privacy is belangrijk voor AskYellow, maar ik kan hier in de chat geen nieuwe juridische beloftes doen. Wat ik wél kan zeggen: ik gebruik wat je typt alleen om in dit gesprek op je te reageren en ik probeer dat zo veilig en respectvol mogelijk te doen. Hoe veilig alles technisch is ingericht (versleuteling, bewaartermijnen, logging, met wie er wel of niet wordt gedeeld) staat uitgelegd in het officiële privacybeleid en de voorwaarden op de AskYellow-website. Als je twijfelt, is het altijd slim om dat beleid even te lezen of AskYellow rechtstreeks te vragen."
+    }
+  ]
+}

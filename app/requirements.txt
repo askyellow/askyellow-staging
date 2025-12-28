@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-dotenv
+openai
+requests
+bcrypt
+PyJWT
+psycopg2-binary
+pytz
+passlib[bcrypt]
+bcrypt
+bcrypt<4.0
+resend
