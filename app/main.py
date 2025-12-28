@@ -1,10 +1,9 @@
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response, JSONResponse
+from fastapi.responses import Response, JSONResponse, FileResponse
 from dotenv import load_dotenv
 from openai import OpenAI
-from chat_engine.routes import router as chat_router
-from fastapi.responses import FileResponse
+
 import os
 import uvicorn
 import requests
@@ -16,26 +15,23 @@ from datetime import datetime, timedelta
 import uuid
 import traceback
 
-# DB
+# DB extern
 import psycopg2
 import psycopg2.extras
 from psycopg2.extras import RealDictCursor
-# chat
-from chat_engine.db import get_conn
-from chat_engine.utils import get_logical_date
 
-from fastapi import APIRouter, Request
-from passlib.context import CryptContext
+# 🔥 ALLES VAN ONS = app.*
+from app.chat_engine.routes import router as chat_router
+from app.chat_engine.db import get_conn
+from app.chat_engine.utils import get_logical_date
 
-from passlib.context import CryptContext
-
-from core.config import (
+from app.core.config import (
     APP_ENV,
     APP_VERSION,
     OPENAI_API_KEY,
 )
-from core.startup import on_startup
-from openai import OpenAI
+from app.core.startup import on_startup
+
 
 pwd_context = CryptContext(
     schemes=["bcrypt_sha256", "scrypt"],
@@ -135,8 +131,8 @@ def shopify_search_products(query: str):
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-from yellowmind.knowledge_engine import load_knowledge, match_question
-from yellowmind.identity_origin import try_identity_origin_answer
+from app.yellowmind.knowledge_engine import load_knowledge, match_question
+from app.yellowmind.identity_origin import try_identity_origin_answer
 
 
 # =============================================================
@@ -915,10 +911,7 @@ def get_recent_messages(conversation_id, limit=12):
 def startup_event():
     on_startup()
 
-    # Zorg dat de tabellen bestaan bij het starten van de app
-    init_db()
-
-    from passlib.context import CryptContext
+       from passlib.context import CryptContext
 
 
 def verify_password(plain_password, hashed_password):
