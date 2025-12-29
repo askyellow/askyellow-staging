@@ -2,7 +2,7 @@ import os
 import json
 import unicodedata
 
-KNOWLEDGE_PATH = "yellowmind/askyellow_knowledge/"
+KNOWLEDGE_PATH = "app/yellowmind/askyellow_knowledge/"
 
 
 # -----------------------------
