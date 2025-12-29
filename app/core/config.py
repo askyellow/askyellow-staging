@@ -4,8 +4,7 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# onder OPENAI_API_KEY check
-client = OpenAI(api_key=OPENAI_API_KEY)
+
 
 load_dotenv()
 
@@ -35,6 +34,10 @@ VALID_MODELS = [
 if YELLOWMIND_MODEL not in VALID_MODELS:
     print(f"?? Onbekend model '{YELLOWMIND_MODEL}' ? fallback naar o3-mini")
     YELLOWMIND_MODEL = "o3-mini"
+
+# onder OPENAI_API_KEY check
+client = OpenAI(api_key=OPENAI_API_KEY)
+
 
 # -------------------------------------------------
 # External services
