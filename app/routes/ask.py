@@ -1,6 +1,22 @@
 ﻿from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
 import secrets
+import time
+import traceback
+
+from app.core.config import client
+from app.yellowmind.knowledge_engine import (
+    match_question,
+    KNOWLEDGE_ENTRIES,
+)
+from app.yellowmind.identity_origin import try_identity_origin_answer
+from app.chat_engine.utils import (
+    search_sql_knowledge,
+    wants_image,
+    detect_cold_start,
+)
+from app.chat_engine.history import get_history_for_model
+from app.chat_engine.llm import call_yellowmind_llm
 
 from app.db.models import (
     get_or_create_user,
