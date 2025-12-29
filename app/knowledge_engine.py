@@ -4,6 +4,8 @@ import unicodedata
 
 KNOWLEDGE_PATH = "app/yellowmind/askyellow_knowledge/"
 
+KNOWLEDGE_ENTRIES = []
+
 
 # -----------------------------
 # 1. CLEAN & NORMALISE TEXT
@@ -30,9 +32,9 @@ def normalize(text):
 # 2. LOAD ALL KNOWLEDGE FILES
 # -----------------------------
 def load_knowledge():
-    entries = []
+    global KNOWLEDGE_ENTRIES
+    KNOWLEDGE_ENTRIES = []
 
-    # Loop through all .json files
     for file in os.listdir(KNOWLEDGE_PATH):
         if file.endswith(".json"):
             full_path = os.path.join(KNOWLEDGE_PATH, file)
@@ -40,11 +42,12 @@ def load_knowledge():
                 with open(full_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     if "entries" in data:
-                        entries.extend(data["entries"])
+                        KNOWLEDGE_ENTRIES.extend(data["entries"])
             except Exception as e:
                 print(f"Error loading {file}: {e}")
 
-    return entries
+    return KNOWLEDGE_ENTRIES
+
 
 
 # -----------------------------
