@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.routes.routes import router as main_router
 from app.core.lifespan import lifespan
+import os
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(main_router)
@@ -1343,7 +1344,6 @@ async def ask_ai(request: Request):
         )
 if __name__ == "__main__":
     import uvicorn
-    import os
 
     port = int(os.environ.get("PORT", 10000))
 
