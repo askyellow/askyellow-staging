@@ -17,7 +17,7 @@ from app.core.config import (
 )
 from app.core.startup import on_startup
 
- from app.db.models import (
+from app.db.models import (
     get_or_create_user,
     get_or_create_conversation,
     save_message,
