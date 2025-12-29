@@ -1,4 +1,4 @@
-
+﻿
 from datetime import datetime, timedelta
 import pytz
 
@@ -39,18 +39,18 @@ def search_sql_knowledge(question: str):
     try:
         resp = requests.post(SQL_SEARCH_URL, data={"q": question}, timeout=3)
         if resp.status_code != 200:
-            print("? SQL STATUS:", resp.status_code)
+            print("⚠ SQL STATUS:", resp.status_code)
             return None
         data = resp.json()
     except Exception as e:
-        print("? SQL ERROR:", e)
+        print("⚠ SQL ERROR:", e)
         return None
 
     best = None
     best_score = 0
 
     for row in data:
-        # ?? robuust: werkt voor dict �n string
+        # 🔒 robuust: werkt voor dict én string
         row_question = (
             row.get("question") if isinstance(row, dict)
             else row
@@ -67,9 +67,9 @@ def search_sql_knowledge(question: str):
                 "score": score
             }
 
-    # ?? DIT hoort nog binnen de functie
+    # ⬅️ DIT hoort nog binnen de functie
     if best:
-        print(f"?? SQL BEST MATCH SCORE={best_score}")
+        print(f"🤖 SQL BEST MATCH SCORE={best_score}")
         return best
 
     return None
