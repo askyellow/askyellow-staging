@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from app.routes.routes import router as main_router
 from app.core.lifespan import lifespan
 from app.core.config import APP_ENV, APP_VERSION
+from fastapi.middleware.cors import CORSMiddleware
 
 import os
 
