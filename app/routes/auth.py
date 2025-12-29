@@ -3,7 +3,6 @@
 router = APIRouter()
 
 @router.post("/auth/login")
-@app.post("/auth/login")
 async def login(payload: dict):
     email = (payload.get("email") or "").lower().strip()
     password = payload.get("password") or ""
@@ -124,7 +123,6 @@ def get_or_create_user_for_auth(conn, auth_user_id: int, session_id: str):
     return row["id"] if not isinstance(row, dict) else row["id"]
 
 @router.post("/auth/register")
-@app.post("/auth/register")
 async def register(payload: dict):
     email = (payload.get("email") or "").lower().strip()
     password = payload.get("password") or ""
@@ -184,7 +182,6 @@ async def register(payload: dict):
     }
 
 @router.post("/auth/request-password-reset")
-@app.post("/auth/request-password-reset")
 async def request_password_reset(payload: dict):
     email = (payload.get("email") or "").lower().strip()
 
@@ -251,7 +248,6 @@ async def request_password_reset(payload: dict):
     }
 
 @router.post("/auth/reset-password")
-@app.post("/auth/reset-password")
 async def reset_password(payload: dict):
     token = payload.get("token")
     new_password = payload.get("password")
