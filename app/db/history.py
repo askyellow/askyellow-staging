@@ -1,5 +1,8 @@
 ﻿from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
+from fastapi import APIRouter
+
+router = APIRouter()
 
 import os
 
