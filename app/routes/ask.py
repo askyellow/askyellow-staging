@@ -15,7 +15,7 @@ from app.chat_engine.utils import (
     wants_image,
     detect_cold_start,
 )
-from app.chat_engine.history import get_history_for_model
+from app.db.history import get_history_for_model
 from app.chat_engine.llm import call_yellowmind_llm
 
 from app.db.models import (
