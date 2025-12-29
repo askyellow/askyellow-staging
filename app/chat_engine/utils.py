@@ -73,3 +73,24 @@ def search_sql_knowledge(question: str):
         return best
 
     return None
+
+
+def wants_image(text: str) -> bool:
+    if not text:
+        return False
+
+    t = text.lower()
+
+    triggers = [
+        "maak een afbeelding",
+        "genereer een afbeelding",
+        "genereer image",
+        "generate image",
+        "image of",
+        "picture of",
+        "teken",
+        "plaatje",
+        "afbeelding",
+    ]
+
+    return any(trigger in t for trigger in triggers)
