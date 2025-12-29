@@ -8,6 +8,17 @@ def get_logical_date():
     if now.hour < 3:
         return (now - timedelta(days=1)).date()
     return now.date()
+    import time
+
+_APP_STARTED_AT = time.time()
+_COLD_START_WINDOW = 15  # seconden
+
+def detect_cold_start() -> bool:
+    """
+    Returns True if we're likely in a cold start window.
+    """
+    return (time.time() - _APP_STARTED_AT) < _COLD_START_WINDOW
+
 
 # =============================================================
 # 4. SQL KNOWLEDGE LAYER
