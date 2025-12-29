@@ -1,6 +1,7 @@
 ﻿
 from datetime import datetime, timedelta
 import pytz
+import time
 
 def get_logical_date():
     tz = pytz.timezone("Europe/Amsterdam")
@@ -8,7 +9,6 @@ def get_logical_date():
     if now.hour < 3:
         return (now - timedelta(days=1)).date()
     return now.date()
-    import time
 
 _APP_STARTED_AT = time.time()
 _COLD_START_WINDOW = 15  # seconden
