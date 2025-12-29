@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 from app.routes.routes import router as main_router
 from app.core.lifespan import lifespan
+from app.core.config import APP_ENV, APP_VERSION
+
 import os
+
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(main_router)
@@ -108,43 +111,7 @@ from app.yellowmind.identity_origin import try_identity_origin_answer
 # 1. ENVIRONMENT & OPENAI CLIENT
 # =============================================================
 
-load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY environment variable is missing")
-
-client = OpenAI(api_key=OPENAI_API_KEY)
-
-YELLOWMIND_MODEL = os.getenv("YELLOWMIND_MODEL")
-if not YELLOWMIND_MODEL:
-    print("⚠️ Geen YELLOWMIND_MODEL env gevonden → fallback naar o3-mini")
-    YELLOWMIND_MODEL = "o3-mini"
-
-VALID_MODELS = [
-    "o3-mini",
-    "o1-mini",
-    "gpt-4.1",
-    "gpt-4.1-mini",
-    "gpt-4o-mini",
-]
-
-
-APP_ENV = os.getenv("APP_ENV", "live")
-APP_VERSION = os.getenv("APP_VERSION", "1.0.0")
-
-print(f"🌍 YellowMind environment: {APP_ENV} (version {APP_VERSION})")
-
-if YELLOWMIND_MODEL not in VALID_MODELS:
-    print(f"⚠️ Onbekend model '{YELLOWMIND_MODEL}' → fallback naar o3-mini")
-    YELLOWMIND_MODEL = "o3-mini"
-
-print(f"🧠 Yellowmind gebruikt model: {YELLOWMIND_MODEL}")
-
-SQL_SEARCH_URL = os.getenv(
-    "SQL_SEARCH_URL",
-    "https://www.askyellow.nl/search_knowledge.php"
-)
 
 # =============================================================
 # 2. FASTAPI APP & CORS
