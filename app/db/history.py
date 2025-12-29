@@ -7,10 +7,7 @@ from app.db.models import (
     get_or_create_user,
     get_or_create_conversation,
 )
-from app.db.auth import (
-    get_auth_user_from_session,
-    get_or_create_user_for_auth,
-)
+
 
 from app.db.models import get_db_conn
 
