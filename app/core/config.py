@@ -2,6 +2,10 @@
 
 import os
 from dotenv import load_dotenv
+from openai import OpenAI
+
+# onder OPENAI_API_KEY check
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 load_dotenv()
 
