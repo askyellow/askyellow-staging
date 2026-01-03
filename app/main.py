@@ -48,6 +48,9 @@ if DEBUG_MODE:
             print(f"{methods:10s} {r.path}")
         print("=== END ROUTES ===\n")
 
+from app.routes.chat import router as chat_router
+
+app.include_router(chat_router, prefix="/api")
 
 
 # =============================================================
