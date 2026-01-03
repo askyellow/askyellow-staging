@@ -11,10 +11,6 @@ import os
 import requests
 import re
 
-
-app = FastAPI(lifespan=lifespan)
-app.include_router(main_router)
-
 from app.routes.ask import router as ask_router
 app.include_router(ask_router)
 
