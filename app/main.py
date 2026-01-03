@@ -4,7 +4,7 @@ from app.core.lifespan import lifespan
 from app.core.config import APP_ENV, APP_VERSION
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import HTTPException
-from app.core.startup import KNOWLEDGE_ENTRIES
+from app.core.startup import get_knowledge_entries
 
 
 import os
@@ -468,7 +468,7 @@ async def tool_knowledge_search(payload: dict):
         raise HTTPException(status_code=400, detail="Missing query")
 
     # Gebruik de al geladen KNOWLEDGE_ENTRIES + match_question
-    kb_answer = match_question(query, KNOWLEDGE_ENTRIES)
+    kb_answer = match_question(query, get_knowledge_entries())
     return {
         "tool": "knowledge_search",
         "query": query,
