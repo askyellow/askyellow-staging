@@ -4,9 +4,8 @@ from app.core.lifespan import lifespan
 from app.core.config import APP_ENV, APP_VERSION
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import HTTPException
-from app.yellowmind.knowledge_engine import load_knowledge, match_question
+from app.core.startup import KNOWLEDGE_ENTRIES
 
-KNOWLEDGE_ENTRIES = load_knowledge()
 
 import os
 import requests
@@ -15,6 +14,10 @@ import re
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(main_router)
+
+from app.routes.chat import ask
+
+app.post("/ask")(ask)
 
 from app.core.config import (
     APP_ENV,
