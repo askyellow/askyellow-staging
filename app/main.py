@@ -1,33 +1,54 @@
-from fastapi import FastAPI
-from app.routes.routes import router as main_router
-from app.core.lifespan import lifespan
-from app.core.config import APP_ENV, APP_VERSION
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import HTTPException
-from app.core.startup import get_knowledge_entries
 
-
-import os
-import requests
-import re
-
-from app.routes.ask import router as ask_router
-app.include_router(ask_router)
-
-
-
+from app.core.lifespan import lifespan
 from app.core.config import (
     APP_ENV,
     APP_VERSION,
+    DEBUG_MODE,
     OPENAI_API_KEY,
 )
-from app.core.startup import on_startup
 
+from app.routes.routes import router as main_router
+from app.routes.ask import router as ask_router
+
+from app.core.startup import on_startup, get_knowledge_entries
 from app.db.models import (
     get_or_create_user,
     get_or_create_conversation,
     save_message,
 )
+
+import os
+import requests
+import re
+
+app = FastAPI(
+    lifespan=lifespan,
+    title="AskYellow API",
+    version=APP_VERSION,
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(main_router)
+app.include_router(ask_router)
+
+if DEBUG_MODE:
+    @app.on_event("startup")
+    def log_routes():
+        print("\n=== REGISTERED ROUTES ===")
+        for r in app.routes:
+            methods = ",".join(r.methods or [])
+            print(f"{methods:10s} {r.path}")
+        print("=== END ROUTES ===\n")
+
+
 
 # =============================================================
 # SHOPIFY FUNCTIONS
