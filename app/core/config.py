@@ -7,6 +7,7 @@ from openai import OpenAI
 
 
 load_dotenv()
+DEBUG_MODE = True  # staging
 
 # -------------------------------------------------
 # App info

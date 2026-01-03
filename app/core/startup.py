@@ -23,3 +23,17 @@ def get_knowledge_entries():
         KNOWLEDGE_ENTRIES = load_knowledge()
 
     return KNOWLEDGE_ENTRIES
+
+def on_startup():
+    global KNOWLEDGE_ENTRIES
+
+    print("🚀 Startup: init_db()")
+    init_db()
+
+    print("📚 Startup: load_knowledge()")
+    KNOWLEDGE_ENTRIES = load_knowledge()
+
+    print(
+        "✅ Startup complete | "
+        f"Knowledge loaded: {KNOWLEDGE_ENTRIES is not None}"
+    )
