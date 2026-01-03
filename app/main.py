@@ -18,9 +18,7 @@ app.include_router(main_router)
 from app.routes.ask import router as ask_router
 app.include_router(ask_router)
 
-from app.routes.chat import ask
 
-app.post("/ask")(ask)
 
 from app.core.config import (
     APP_ENV,
