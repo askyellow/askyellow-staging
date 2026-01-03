@@ -14,3 +14,12 @@ def on_startup():
 
     # 2️⃣ Knowledge laden
     KNOWLEDGE_ENTRIES = load_knowledge()
+
+def get_knowledge_entries():
+    global KNOWLEDGE_ENTRIES
+
+    if KNOWLEDGE_ENTRIES is None:
+        print("⚠️ Knowledge not loaded yet — loading lazily")
+        KNOWLEDGE_ENTRIES = load_knowledge()
+
+    return KNOWLEDGE_ENTRIES
