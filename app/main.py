@@ -4,6 +4,9 @@ from app.core.lifespan import lifespan
 from app.core.config import APP_ENV, APP_VERSION
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import HTTPException
+from app.yellowmind.knowledge_engine import load_knowledge, match_question
+
+KNOWLEDGE_ENTRIES = load_knowledge()
 
 import os
 import requests
