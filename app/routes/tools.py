@@ -1,6 +1,6 @@
 ﻿from fastapi import APIRouter, Request, HTTPException
 from app.services.auth import require_auth_session
-from app.services.image_generation import generate_image
+from app.services.image import generate_image
 
 router = APIRouter()
 
