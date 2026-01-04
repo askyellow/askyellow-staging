@@ -3,7 +3,9 @@ from app.core.startup import on_startup
 
 @asynccontextmanager
 async def lifespan(app):
-    # ⏳ startup
+    print("🔥 LIFESPAN START")
     on_startup()
+    print("🔥 LIFESPAN BEFORE YIELD")
     yield
-    # 🧹 shutdown (later, indien nodig)
+    print("🔥 LIFESPAN SHUTDOWN")
+
