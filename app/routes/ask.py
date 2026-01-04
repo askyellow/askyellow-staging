@@ -1,22 +1,23 @@
-﻿from fastapi import APIRouter, Request, HTTPException
+﻿from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 import secrets
 import time
 import traceback
 
-from app.core.config import client
-from app.knowledge_engine import (
-    match_question,
-    KNOWLEDGE_ENTRIES,
+from app.services.detect import (
+    detect_image_intent,
+    detect_search_intent,
+    detect_hints,
+    log_ai_status,
 )
-from app.identity_origin import try_identity_origin_answer
-from app.db.history import get_history_for_model
-
-from app.db.models import (
-    get_or_create_user,
-    get_or_create_conversation,
-    save_message,
+from app.services.image import generate_image
+from app.services.chat_history import (
+    load_history_for_llm,
+    persist_user_message,
+    persist_ai_message,
 )
+from app.services.llm import run_llm
+from app.services.context import build_context
 
 router = APIRouter()
 
@@ -54,112 +55,56 @@ async def ask_ai(request: Request):
             )
 
         # -----------------------------
-        # IMAGE ROUTE
+        # Intent detectie
         # -----------------------------
-        if wants_image(question):
-            try:
-                img = client.images.generate(
-                    model="gpt-image-1",
-                    prompt=question,
-                    size="1024x1024",
-                )
-                return {
-                    "type": "image",
-                    "url": img.data[0].url,
-                    "prompt": question
-                }
-            except Exception as e:
-                return {
-                    "type": "error",
-                    "error": str(e)
-                }
+        hints = detect_hints(question)
 
-        # -----------------------------
-        # CONTEXT & KNOWLEDGE
-        # -----------------------------
-        identity_answer = try_identity_origin_answer(question, language)
-        sql_match = search_sql_knowledge(question)
+        if detect_image_intent(question):
+            return generate_image(question)
 
-        try:
-            kb_answer = match_question(question, KNOWLEDGE_ENTRIES)
-        except Exception:
-            kb_answer = None
-
-        hints = {}
-
-        # =============================================================
-        # 🔍 SEARCH INTENT DETECTION
-        # =============================================================
-        SEARCH_TRIGGERS = [
-            "opzoeken",
-            "op zoek",
-            "meest verkocht",
-            "dit jaar",
-            "dit moment",
-            "actueel",
-            "nu populair",
-            "trending",
-            "beste",
-            "vergelijk",
-            "waar koop",
-            "waar kan ik",
-        ]
-
-        q_lower = question.lower()
-        if any(trigger in q_lower for trigger in SEARCH_TRIGGERS):
+        if detect_search_intent(question):
             return {
                 "type": "search",
-                "query": question
+                "query": question,
             }
 
-        # =============================================================
-        # 🔥 HISTORY OPHALEN
-        # =============================================================
-        conn = get_db_conn()
-        conv_id, history = get_history_for_model(conn, session_id)
-        conn.close()
+        # -----------------------------
+        # Context & history
+        # -----------------------------
+        context = build_context(question, language)
+        history = load_history_for_llm(session_id)
 
-        # =============================================================
-        # 🔥 LLM CALL (MET HISTORY)
-        # =============================================================
+        persist_user_message(session_id, question)
+
+        # -----------------------------
+        # LLM call
+        # -----------------------------
         start_ai = time.time()
 
-        final_answer, raw_output = call_yellowmind_llm(
+        final_answer, raw_output = run_llm(
             question=question,
             language=language,
-            kb_answer=kb_answer,
-            sql_match=sql_match,
+            kb_answer=context["kb_answer"],
+            sql_match=context["sql_match"],
             hints=hints,
-            history=history
+            history=history,
         )
 
         ai_ms = int((time.time() - start_ai) * 1000)
+        log_ai_status(ai_ms)
 
-        if not final_answer:
-            final_answer = "⚠️ Geen geldig antwoord beschikbaar."
+        persist_ai_message(session_id, final_answer)
 
-        # =============================================================
-        # OPSLAAN
-        # =============================================================
-        try:
-            conn = get_db_conn()
-            save_message(conn, conv_id, "user", question)
-            save_message(conn, conv_id, "assistant", final_answer)
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            print("⚠️ Chat history save failed:", e)
-
-        status = detect_cold_start(0, 0, ai_ms, ai_ms)
-        print(f"[STATUS] {status} | AI {ai_ms} ms")
-
+        # -----------------------------
+        # Response
+        # -----------------------------
         return {
             "answer": final_answer,
             "output": raw_output,
-            "source": "yellowmind_llm"
+            "source": "yellowmind_llm",
         }
 
-    except Exception as e:
+    except Exception:
         print("🔥 ASK ENDPOINT CRASH 🔥")
         traceback.print_exc()
         return JSONResponse(

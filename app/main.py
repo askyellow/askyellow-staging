@@ -1,16 +1,68 @@
 from fastapi import FastAPI
-from fastapi import Request
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.core.lifespan import lifespan
+from app.core.config import (
+    APP_ENV,
+    APP_VERSION,
+    DEBUG_MODE,
+)
+
+from app.routes.routes import router as main_router
+from app.routes.ask import router as ask_router
+
+from app.core.startup import on_startup
 
 
-app = FastAPI()
+app = FastAPI(
+    lifespan=lifespan,
+    title="AskYellow API",
+    version=APP_VERSION,
+)
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+# -------------------------------------------------
+# ROUTES
+# -------------------------------------------------
 
-@app.get("/__whoami")
-def whoami():
-    return {
-        "file": __file__,
-        "app_id": id(app)
-    }
+app.include_router(main_router)
+app.include_router(ask_router)
+
+# -------------------------------------------------
+# MIDDLEWARE
+# -------------------------------------------------
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://askyellow.nl",
+        "https://www.askyellow.nl",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# -------------------------------------------------
+# STARTUP
+# -------------------------------------------------
+
+@app.on_event("startup")
+def startup_event():
+    on_startup()
+
+# -------------------------------------------------
+# DEBUG
+# -------------------------------------------------
+
+if DEBUG_MODE:
+    @app.on_event("startup")
+    def log_routes():
+        print("\n=== REGISTERED ROUTES ===")
+        for r in app.routes:
+            methods = ",".join(r.methods or [])
+            print(f"{methods:10s} {r.path}")
+        print("=== END ROUTES ===\n")
+
+

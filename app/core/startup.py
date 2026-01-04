@@ -37,3 +37,7 @@ def on_startup():
         "✅ Startup complete | "
         f"Knowledge loaded: {KNOWLEDGE_ENTRIES is not None}"
     )
+def on_startup():
+    # init_db()
+    # load_knowledge()
+    pass

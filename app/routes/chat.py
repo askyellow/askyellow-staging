@@ -3,7 +3,8 @@
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
 
-from app.chat_engine.engine import handle_chat_request  # bestaande logica
+# from app.main_chat_logic import handle_chat_request
+
 from app.core.sessions import get_or_create_session     # bestaande helper
 
 router = APIRouter(prefix="/chat", tags=["chat"])

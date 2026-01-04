@@ -7,6 +7,7 @@ from openai import OpenAI
 
 
 load_dotenv()
+
 DEBUG_MODE = True  # staging
 
 # -------------------------------------------------
@@ -19,6 +20,7 @@ APP_VERSION = os.getenv("APP_VERSION", "1.0.0")
 # OpenAI / YellowMind
 # -------------------------------------------------
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY environment variable is missing")
 
@@ -57,3 +59,8 @@ SHOPIFY_API_VERSION = "2025-10"
 
 # Resend
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+
+# DATABASE_URL komt uit de Render-omgeving
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is niet ingesteld (env var DATABASE_URL).")
