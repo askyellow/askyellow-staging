@@ -15,3 +15,10 @@ async def ask(request: Request):
         "answer": "Ask endpoint is alive 🎉",
         "debug": data
     }
+
+@app.get("/__whoami")
+def whoami():
+    return {
+        "file": __file__,
+        "app_id": id(app)
+    }
