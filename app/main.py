@@ -44,25 +44,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# -------------------------------------------------
-# STARTUP
-# -------------------------------------------------
-
-@app.on_event("startup")
-def startup_event():
-    on_startup()
-
-# -------------------------------------------------
-# DEBUG
-# -------------------------------------------------
-
-if DEBUG_MODE:
-    @app.on_event("startup")
-    def log_routes():
-        print("\n=== REGISTERED ROUTES ===")
-        for r in app.routes:
-            methods = ",".join(r.methods or [])
-            print(f"{methods:10s} {r.path}")
-        print("=== END ROUTES ===\n")
 
 
