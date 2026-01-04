@@ -8,14 +8,6 @@ app = FastAPI()
 def health():
     return {"status": "ok"}
 
-@app.post("/ask")
-async def ask(request: Request):
-    data = await request.json()
-    return {
-        "answer": "Ask endpoint is alive 🎉",
-        "debug": data
-    }
-
 @app.get("/__whoami")
 def whoami():
     return {
