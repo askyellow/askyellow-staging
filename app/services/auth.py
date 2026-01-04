@@ -1,11 +1,12 @@
+from fastapi import Request, HTTPException
 from passlib.context import CryptContext
+from app.db.connection import get_db_conn
+from app.db.auth import get_auth_user_from_session
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
-
-# ===== IMAGE GENERATION AUTH CHECK =====
 
 def require_auth_session(request: Request):
     # 👇 PRE-FLIGHT ALTIJD TOESTAAN
@@ -28,3 +29,4 @@ def require_auth_session(request: Request):
             status_code=403,
             detail="Ongeldige of verlopen sessie"
         )
+
