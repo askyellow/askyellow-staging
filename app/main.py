@@ -11,6 +11,7 @@ from app.core.config import (
 
 from app.routes.routes import router as main_router
 from app.routes.ask import router as ask_router
+from app.routes.chat import router as chat_router
 
 from app.core.startup import on_startup, get_knowledge_entries
 from app.db.models import (
@@ -50,7 +51,6 @@ if DEBUG_MODE:
             print(f"{methods:10s} {r.path}")
         print("=== END ROUTES ===\n")
 
-from app.routes.chat import router as chat_router
 
 app.include_router(chat_router, prefix="/api")
 
