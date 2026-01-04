@@ -38,6 +38,8 @@ app.add_middleware(
 
 app.include_router(main_router)
 app.include_router(ask_router)
+app.include_router(chat_router, prefix="/api")
+
 
 if DEBUG_MODE:
     @app.on_event("startup")
@@ -152,7 +154,6 @@ from app.yellowmind.identity_origin import try_identity_origin_answer
 # 2. FASTAPI APP & CORS
 # =============================================================
 
-app = FastAPI(title="YellowMind API")
 
 app.add_middleware(
     CORSMiddleware,
