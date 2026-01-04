@@ -39,7 +39,7 @@ app.add_middleware(
 
 app.include_router(main_router)
 app.include_router(ask_router)
-app.include_router(chat_router, prefix="/api")
+# app.include_router(chat_router, prefix="/api")
 
 
 if DEBUG_MODE:
@@ -52,7 +52,6 @@ if DEBUG_MODE:
         print("=== END ROUTES ===\n")
 
 
-# app.include_router(chat_router, prefix="/api")
 
 
 # =============================================================
