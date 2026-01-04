@@ -10,13 +10,7 @@ from app.knowledge_engine import (
     KNOWLEDGE_ENTRIES,
 )
 from app.identity_origin import try_identity_origin_answer
-from app.chat_engine.utils import (
-    search_sql_knowledge,
-    wants_image,
-    detect_cold_start,
-)
 from app.db.history import get_history_for_model
-from app.chat_engine.llm import call_yellowmind_llm
 
 from app.db.models import (
     get_or_create_user,
