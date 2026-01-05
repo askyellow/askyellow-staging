@@ -30,25 +30,25 @@ class ToolPayload(BaseModel):
 @router.post("/knowledge_search")
 def tool_knowledge_search(payload: ToolPayload):
     result = search_sql_knowledge(payload.query)
+    if result:
+        return {
+            "answer": result.get("answer")
+        }
     return {
-        "tool": "knowledge_search",
-        "result": result
+        "answer": None
     }
+
 
 
 @router.post("/websearch")
 def tool_websearch(payload: ToolPayload):
-    # later echte websearch
     return {
-        "tool": "websearch",
-        "result": None
+        "results": []
     }
 
 
 @router.post("/shopify_search")
 def tool_shopify_search(payload: ToolPayload):
-    # later echte shopify logica
     return {
-        "tool": "shopify_search",
-        "result": None
+        "results": []
     }
