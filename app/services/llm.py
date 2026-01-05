@@ -1,5 +1,7 @@
 from app.chat_engine.llm import call_yellowmind_llm
 from typing import Tuple, Dict, Any
+from app.chat_engine.prompts import SYSTEM_PROMPT
+
 
 def run_llm(
     question: str,
