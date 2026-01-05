@@ -1,6 +1,7 @@
 from app.chat_engine.prompts import SYSTEM_PROMPT
 from openai import OpenAI
 import os
+from app.chat_engine.time_context import build_time_context
 
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY")
@@ -18,12 +19,13 @@ def call_yellowmind_llm(
     hints,
     history=None
 ):
+
     messages = [
-        {
-            "role": "system",
-            "content": SYSTEM_PROMPT
-        }
-    ]
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": build_time_context()},
+    ...
+]
+
 
     if history:
         for msg in history:
