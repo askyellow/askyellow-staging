@@ -1,4 +1,10 @@
 from app.chat_engine.prompts import SYSTEM_PROMPT
+from openai import OpenAI
+import os
+
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY")
+)
 
 # =============================================================
 # 6. OPENAI CALL — FIXED FOR o3 RESPONSE FORMAT (SAFE)
@@ -70,4 +76,3 @@ def call_yellowmind_llm(
             break
 
     return final_answer, []
-
