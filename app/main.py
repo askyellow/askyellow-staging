@@ -19,6 +19,7 @@ app = FastAPI(
     title="AskYellow API",
     version=APP_VERSION,
 )
+print("🔥 MAIN.PY LOADED 🔥")
 
 # -------------------------------------------------
 # ROUTES
@@ -43,6 +44,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+print("🔥 ROUTERS LOADED 🔥")
 
 
 
