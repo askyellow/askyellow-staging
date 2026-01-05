@@ -2,7 +2,7 @@
 from app.services.auth import require_auth_session
 from app.services.image import generate_image
 from pydantic import BaseModel
-from app.services.utils import search_sql_knowledge
+from app.chat_engine.utils import search_sql_knowledge
 
 router = APIRouter()
 
