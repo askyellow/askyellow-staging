@@ -6,6 +6,7 @@ import os
 from datetime import datetime, timedelta
 import pytz
 
+SQL_SEARCH_URL = os.getenv("SQL_SEARCH_URL")
 
 def get_logical_date():
     tz = pytz.timezone("Europe/Amsterdam")
