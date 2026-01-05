@@ -12,6 +12,8 @@ from app.routes.routes import router as main_router
 from app.routes.ask import router as ask_router
 
 from app.core.startup import on_startup
+from app.routes import tools
+app.include_router(tools.router, prefix="/tool")
 
 
 app = FastAPI(
@@ -19,7 +21,6 @@ app = FastAPI(
     title="AskYellow API",
     version=APP_VERSION,
 )
-print("🔥 MAIN.PY LOADED 🔥")
 
 # -------------------------------------------------
 # ROUTES
@@ -44,7 +45,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-print("🔥 ROUTERS LOADED 🔥")
 
 
 
