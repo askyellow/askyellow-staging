@@ -50,5 +50,11 @@ def tool_websearch(payload: ToolPayload):
 @router.post("/shopify_search")
 def tool_shopify_search(payload: ToolPayload):
     return {
-        "results": []
+        "results": [
+            {
+                "title": "Test product",
+                "price": "€19,95",
+                "url": "https://shop.askyellow.nl/test"
+            }
+        ]
     }
