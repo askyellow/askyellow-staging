@@ -4,6 +4,7 @@ from app.services.image import generate_image
 from pydantic import BaseModel
 from app.chat_engine.utils import search_sql_knowledge
 from app.services.shopify import shopify_search_products
+from app.services.websearch import web_search
 
 router = APIRouter()
 
@@ -39,14 +40,16 @@ def tool_knowledge_search(payload: ToolPayload):
         "answer": None
     }
 
-
-
 @router.post("/websearch")
 def tool_websearch(payload: ToolPayload):
-    return {
-        "results": []
-    }
+    query = (payload.query or "").strip()
+    if not query:
+        return {"results": []}
 
+    results = web_search(query)
+    return {
+        "results": results
+    }
 
 @router.post("/shopify_search")
 def tool_shopify_search(payload: ToolPayload):
