@@ -1,3 +1,5 @@
+from app.chat_engine.prompts import SYSTEM_PROMPT
+
 # =============================================================
 # 6. OPENAI CALL — FIXED FOR o3 RESPONSE FORMAT (SAFE)
 # =============================================================
@@ -68,3 +70,4 @@ def call_yellowmind_llm(
             break
 
     return final_answer, []
+
