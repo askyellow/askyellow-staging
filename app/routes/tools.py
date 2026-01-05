@@ -3,6 +3,7 @@ from app.services.auth import require_auth_session
 from app.services.image import generate_image
 from pydantic import BaseModel
 from app.chat_engine.utils import search_sql_knowledge
+from app.services.shopify import shopify_search_products
 
 router = APIRouter()
 
@@ -49,12 +50,14 @@ def tool_websearch(payload: ToolPayload):
 
 @router.post("/shopify_search")
 def tool_shopify_search(payload: ToolPayload):
+    query = (payload.query or "").strip()
+    if not query:
+        return {"results": []}
+
+    results = shopify_search_products(query)
+
+    # frontend verwacht max ~5
     return {
-        "results": [
-            {
-                "title": "Test product",
-                "price": "€19,95",
-                "url": "https://shop.askyellow.nl/test"
-            }
-        ]
+        "results": results[:5]
     }
+
