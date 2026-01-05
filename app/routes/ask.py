@@ -33,6 +33,7 @@ async def ask_ai(request: Request):
 
         question = (data.get("question") or "").strip()
         language = (data.get("language") or "nl").lower()
+        mode = (data.get("mode") or "chat").lower()
 
         # -----------------------------
         # Session ID bepalen
@@ -88,6 +89,7 @@ async def ask_ai(request: Request):
             sql_match=context["sql_match"],
             hints=hints,
             history=history,
+            mode=mode,
         )
 
         ai_ms = int((time.time() - start_ai) * 1000)

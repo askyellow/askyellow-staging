@@ -1,11 +1,16 @@
-from app.chat_engine.prompts import SYSTEM_PROMPT
 from openai import OpenAI
 import os
+
 from app.chat_engine.time_context import build_time_context
+from app.chat_engine.prompts import (
+    SYSTEM_PROMPT_CHAT,
+    SYSTEM_PROMPT_SEARCH,
+)
 
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY")
 )
+
 
 # =============================================================
 # 6. OPENAI CALL — FIXED FOR o3 RESPONSE FORMAT (SAFE)
@@ -17,14 +22,21 @@ def call_yellowmind_llm(
     kb_answer,
     sql_match,
     hints,
-    history=None
+    history=None,
+    mode="chat",
 ):
 
+    system_prompt = (
+        SYSTEM_PROMPT_SEARCH
+        if mode == "search"
+        else SYSTEM_PROMPT_CHAT
+)
+
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "system", "content": build_time_context()},
-    ...
 ]
+
 
 
     if history:
