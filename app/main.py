@@ -13,7 +13,6 @@ from app.routes.ask import router as ask_router
 
 from app.core.startup import on_startup
 from app.routes import tools
-app.include_router(tools.router, prefix="/tool")
 
 
 app = FastAPI(
@@ -28,6 +27,7 @@ app = FastAPI(
 
 app.include_router(main_router)
 app.include_router(ask_router)
+app.include_router(tools.router, prefix="/tool")
 
 # -------------------------------------------------
 # MIDDLEWARE
