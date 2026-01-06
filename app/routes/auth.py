@@ -1,25 +1,12 @@
-﻿from fastapi import APIRouter, Request, HTTPException
+﻿from fastapi import APIRouter, HTTPException
 from app.db.connection import get_db_conn
 import uuid
-from datetime import datetime, timedelta
 
 router = APIRouter()
-from passlib.context import CryptContext
-
-pwd_context = CryptContext(
-    schemes=["pbkdf2_sha256", "bcrypt"],
-    deprecated="auto"
-)
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
-
-#TIJDELIJKE INLOG ZONDER PASWOORD
 
 @router.post("/auth/login")
 async def login(payload: dict):
-    email = payload.get("email", "").lower().strip()
+    email = (payload.get("email") or "").lower().strip()
 
     if not email:
         raise HTTPException(status_code=400, detail="Email required")
@@ -27,6 +14,7 @@ async def login(payload: dict):
     conn = get_db_conn()
     cur = conn.cursor()
 
+    # 🔹 user ophalen (geen password check)
     cur.execute(
         "SELECT id FROM auth_users WHERE email = %s",
         (email,)
@@ -34,18 +22,28 @@ async def login(payload: dict):
     user = cur.fetchone()
 
     if not user:
+        conn.close()
         raise HTTPException(status_code=401, detail="User not found")
 
+    user_id = user[0]
     session_id = str(uuid.uuid4())
 
+    # 🔹 session aanmaken
     cur.execute(
-        "INSERT INTO sessions (session_id, user_id) VALUES (%s, %s)",
-        (session_id, user[0])
+        """
+        INSERT INTO sessions (session_id, user_id)
+        VALUES (%s, %s)
+        """,
+        (session_id, user_id)
     )
+
     conn.commit()
     conn.close()
 
-    return {"session_id": session_id}
+    return {
+        "session_id": session_id
+    }
+
 
 #ORGINELE INLOG, TIJDELIJK VERVANGEN DOOR BOVENSTAANDE
 #@router.post("/auth/login")
