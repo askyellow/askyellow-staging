@@ -2,7 +2,10 @@ from openai import OpenAI
 import os
 
 from app.chat_engine.time_context import build_time_context
-from app.chat_engine.prompts import SYSTEM_PROMPT_CHAT, SYSTEM_PROMPT_SEARCH
+from app.chat_engine.prompts import (
+    SYSTEM_PROMPT_CHAT,
+    SYSTEM_PROMPT_SEARCH,
+)
 
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY")
@@ -13,7 +16,7 @@ client = OpenAI(
 # 6. OPENAI CALL — FIXED FOR o3 RESPONSE FORMAT (SAFE)
 # =============================================================
 
-def call_yellowmind_llm(
+def run_llm(
     question,
     language,
     kb_answer,
@@ -87,4 +90,3 @@ def call_yellowmind_llm(
             break
 
     return final_answer, []
-
