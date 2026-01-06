@@ -2,6 +2,12 @@
 from app.db.connection import get_db_conn
 
 router = APIRouter()
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
 
 @router.post("/auth/login")
 async def login(payload: dict):
@@ -289,6 +295,5 @@ async def reset_password(payload: dict):
 
     conn.commit()
     conn.close()
-
 
     return {"success": True}
