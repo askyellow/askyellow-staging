@@ -16,7 +16,7 @@ from app.services.chat_history import (
     persist_user_message,
     persist_ai_message,
 )
-from app.services.llm import run_llm
+from app.chat_engine.llm import run_llm
 from app.services.context import build_context
 
 router = APIRouter()
@@ -113,3 +113,4 @@ async def ask_ai(request: Request):
             status_code=500,
             content={"error": "Internal server error"}
         )
+
