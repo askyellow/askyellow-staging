@@ -38,9 +38,10 @@ def run_llm(
 ]
 
 
+    MAX_HISTORY_MESSAGES = 8
 
     if history:
-        for msg in history:
+        for msg in history[-MAX_HISTORY_MESSAGES:]:            
             messages.append({
                 "role": msg["role"],
                 "content": msg["content"]
@@ -52,9 +53,8 @@ def run_llm(
     })
 
     print("=== PAYLOAD TO MODEL ===")
-    for i, m in enumerate(messages):
-        print(i, m["role"], m["content"][:80])
-    print("========================")
+    total_chars = sum(len(m["content"]) for m in messages)        
+    print(f"[LLM] total chars={total_chars} ~ tokens={total_chars//4}")
 
     ai = client.chat.completions.create(
         model="gpt-4o-mini",
