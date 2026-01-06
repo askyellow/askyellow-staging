@@ -27,8 +27,15 @@ async def login(payload: dict):
     )
     user = cur.fetchone()
 
-    if not user or not verify_password(password, user["password_hash"]):
+
+    if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    user_id, password_hash, first_name = user
+
+    if not verify_password(password, password_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
 
     # nieuwe sessie
     session_id = str(uuid.uuid4())
