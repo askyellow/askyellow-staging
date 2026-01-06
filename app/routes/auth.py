@@ -1,5 +1,5 @@
 ﻿from fastapi import APIRouter, Request, HTTPException
-from app.db.connetion import get_db_conn
+from app.db.connection import get_db_conn
 
 router = APIRouter()
 
@@ -289,5 +289,6 @@ async def reset_password(payload: dict):
 
     conn.commit()
     conn.close()
+
 
     return {"success": True}
