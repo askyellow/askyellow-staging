@@ -30,8 +30,8 @@ async def login(payload: dict):
         "SELECT id, password_hash, first_name FROM auth_users WHERE email = %s",
         (email,)
     )
-    user = cur.fetchone()
 
+    user = cur.fetchone()
 
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -41,18 +41,14 @@ async def login(payload: dict):
     if not verify_password(password, password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-
-    # nieuwe sessie
     session_id = str(uuid.uuid4())
     expires_at = datetime.utcnow() + timedelta(days=7)
 
-    cur.execute(
-        """
+    cur.execute("""
         INSERT INTO user_sessions (session_id, user_id, expires_at)
         VALUES (%s, %s, %s)
-        """,
-        (session_id, user["id"], expires_at)
-    )
+    """, (session_id, user_id, expires_at))
+
 
     cur.execute(
         "UPDATE auth_users SET last_login = NOW() WHERE id = %s",
