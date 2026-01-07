@@ -69,7 +69,7 @@ async def chat_history(session_id: str):
     auth_user = get_auth_user_from_session(conn, session_id)
 
     if auth_user:
-        owner_id = get_or_create_user_for_auth(conn, auth_user["0"],)
+        owner_id = get_or_create_user_for_auth(conn, auth_user["id"],)
     else:
         owner_id = get_or_create_user(conn, session_id)
 
