@@ -69,7 +69,8 @@ async def chat_history(session_id: str):
     auth_user = get_auth_user_from_session(conn, session_id)
 
     if auth_user:
-        owner_id = get_or_create_user_for_auth(conn, auth_user["id"],)
+        auth_user_id = auth_user[0]
+        owner_id = get_or_create_user_for_auth(conn, auth_user_id)
     else:
         owner_id = get_or_create_user(conn, session_id)
 
@@ -90,10 +91,12 @@ async def chat_history(session_id: str):
 
     return {
         "messages": [
-            {"role": r["role"], "content": r["content"]}
+            {"role": r[0], "content": r[1]}
             for r in rows
         ]
     }
+
+
 
 def get_conversation_history_for_model(conn, session_id, limit=12):
     cur = conn.cursor()
