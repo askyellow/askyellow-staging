@@ -5,26 +5,16 @@ from app.db.queries import (
 )
 
 def load_history_for_llm(session_id: str) -> list[dict]:
-    conn = get_db_conn()
-    cur = conn.cursor()
+    """
+    Geeft chatgeschiedenis terug in het formaat
+    dat het LLM verwacht.
+    """
+    return get_recent_messages(session_id)
 
-    cur.execute(
-        """
-        SELECT role, content
-        FROM messages
-        WHERE conversation_id = (
-            SELECT id
-            FROM conversations
-            WHERE owner_id = (
-                SELECT id FROM users WHERE session_id = %s
-            )
-        )
-        ORDER BY created_at ASC
-        """,
-        (session_id,),
-    )
+def persist_user_message(session_id: str, content: str):
+    save_message(session_id, "user", content)
 
-    rows = cur.fetchall()
-    conn.close()
+def persist_ai_message(session_id: str, content: str):
+    save_message(session_id, "assistant", content)
 
-    return [{"role": r[0], "content": r[1]} for r in rows if r[1]]
+
