@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from passlib.context import CryptContext
 
 pwd_context = CryptContext(
-    schemes=["bcrypt", "pbkdf2_sha256"],
+    schemes=["bcrypt_sha256", "bcrypt", "pbkdf2_sha256"],
     deprecated="auto"
 )
 def verify_password(plain: str, hashed: str) -> bool:
