@@ -1,7 +1,12 @@
 ﻿from fastapi import APIRouter, HTTPException
 from app.db.connection import get_db_conn
 from datetime import datetime, timedelta
-from app.services.auth import verify_password
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def verify_password(plain, hashed):
+    return pwd_context.verify(plain, hashed)
 
 import uuid
 
