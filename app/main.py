@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.db.history import router as history_router
 
 from app.core.lifespan import lifespan
 from app.core.config import (
@@ -27,6 +28,7 @@ app = FastAPI(
 app.include_router(main_router)
 app.include_router(ask_router)
 app.include_router(tools.router, prefix="/tool")
+app.include_router(history_router)
 
 # -------------------------------------------------
 # MIDDLEWARE
