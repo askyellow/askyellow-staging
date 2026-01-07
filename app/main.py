@@ -16,7 +16,6 @@ from app.routes import tools
 
 
 app = FastAPI(
-    lifespan=lifespan,
     title="AskYellow API",
     version=APP_VERSION,
 )
