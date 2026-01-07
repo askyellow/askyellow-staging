@@ -1,103 +1,67 @@
 ﻿from fastapi import APIRouter, HTTPException
 from app.db.connection import get_db_conn
+from datetime import datetime, timedelta
+
 import uuid
 
 router = APIRouter()
 
+
+
+
+#ORGINELE INLOG, TIJDELIJK VERVANGEN DOOR BOVENSTAANDE
 @router.post("/auth/login")
 async def login(payload: dict):
     email = (payload.get("email") or "").lower().strip()
-
-    if not email:
-        raise HTTPException(status_code=400, detail="Email required")
+    password = payload.get("password") or ""
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email en wachtwoord verplicht")
 
     conn = get_db_conn()
     cur = conn.cursor()
 
-    # 🔹 user ophalen (geen password check)
+    # gebruiker ophalen
     cur.execute(
-        "SELECT id FROM auth_users WHERE email = %s",
+        "SELECT id, password_hash, first_name FROM auth_users WHERE email = %s",
         (email,)
     )
     user = cur.fetchone()
 
+
     if not user:
-        conn.close()
-        raise HTTPException(status_code=401, detail="User not found")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    user_id = user[0]
+    user_id, password_hash, first_name = user
+
+    if not verify_password(password, password_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+
+    # nieuwe sessie
     session_id = str(uuid.uuid4())
+    expires_at = datetime.utcnow() + timedelta(days=7)
 
-    # 🔹 session aanmaken
     cur.execute(
         """
-        INSERT INTO sessions (session_id, user_id)
-        VALUES (%s, %s)
+        INSERT INTO user_sessions (session_id, user_id, expires_at)
+        VALUES (%s, %s, %s)
         """,
-        (session_id, user_id)
+        (session_id, user["id"], expires_at)
+    )
+
+    cur.execute(
+        "UPDATE auth_users SET last_login = NOW() WHERE id = %s",
+        (user["id"],)
     )
 
     conn.commit()
     conn.close()
 
     return {
-        "session_id": session_id
+        "success": True,
+        "session": session_id,
+        "first_name": user["first_name"]
     }
-
-
-#ORGINELE INLOG, TIJDELIJK VERVANGEN DOOR BOVENSTAANDE
-#@router.post("/auth/login")
-#async def login(payload: dict):
-#    email = (payload.get("email") or "").lower().strip()
-#    password = payload.get("password") or ""
-#    if not email or not password:
-#        raise HTTPException(status_code=400, detail="Email en wachtwoord verplicht")
-
-#    conn = get_db_conn()
-#    cur = conn.cursor()
-
-    # gebruiker ophalen
-#    cur.execute(
-#        "SELECT id, password_hash, first_name FROM auth_users WHERE email = %s",
-#        (email,)
-#    )
-#    user = cur.fetchone()
-
-
-#    if not user:
-#        raise HTTPException(status_code=401, detail="Invalid credentials")
-
-#    user_id, password_hash, first_name = user
-
-#    if not verify_password(password, password_hash):
-#        raise HTTPException(status_code=401, detail="Invalid credentials")
-
-
-    # nieuwe sessie
-#    session_id = str(uuid.uuid4())
-#    expires_at = datetime.utcnow() + timedelta(days=7)
-
-#    cur.execute(
-#        """
-#        INSERT INTO user_sessions (session_id, user_id, expires_at)
-#        VALUES (%s, %s, %s)
-#        """,
-#        (session_id, user["id"], expires_at)
-#    )
-
-#    cur.execute(
-#        "UPDATE auth_users SET last_login = NOW() WHERE id = %s",
-#        (user["id"],)
-#    )
-
-#    conn.commit()
-#    conn.close()
-
-#    return {
-#        "success": True,
-#        "session": session_id,
-#        "first_name": user["first_name"]
-#    }
 
 
 def get_auth_user_from_session(conn, session_id: str):
