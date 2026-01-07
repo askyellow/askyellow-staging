@@ -108,7 +108,8 @@ def get_or_create_user_for_auth(conn, auth_user_id: int):
         """,
         (stable_sid,)
     )
-    user_id = cur.fetchone()[0]
+    row = cur.fetchone()
+    user_id = row["id"] if isinstance(row, dict) else row[0]
     conn.commit()
     return user_id
 
