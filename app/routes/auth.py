@@ -52,17 +52,18 @@ async def login(payload: dict):
 
     cur.execute(
         "UPDATE auth_users SET last_login = NOW() WHERE id = %s",
-        (user["id"],)
+        (user_id,)
     )
 
     conn.commit()
     conn.close()
 
     return {
-        "success": True,
-        "session": session_id,
-        "first_name": user["first_name"]
-    }
+    "success": True,
+    "session": session_id,
+    "first_name": first_name
+}
+
 
 
 def get_auth_user_from_session(conn, session_id: str):
@@ -79,13 +80,15 @@ def get_auth_user_from_session(conn, session_id: str):
     if not row:
         return None
 
+    user_id, first_name = row
+
     return {
-    "id": row["id"],
-    "first_name": row["first_name"]
+        "id": user_id,
+        "first_name": first_name
 }
 
 
-def get_or_create_user_for_auth(conn, auth_user_id: int, session_id: str):
+def get_or_create_user_for_auth(conn, auth_user_id: int):
     cur = conn.cursor()
     stable_sid = f"auth-{auth_user_id}"
 
@@ -95,7 +98,7 @@ def get_or_create_user_for_auth(conn, auth_user_id: int, session_id: str):
     )
     row = cur.fetchone()
     if row:
-        return row["id"]
+        return row[0]
 
     cur.execute(
         """
@@ -105,9 +108,10 @@ def get_or_create_user_for_auth(conn, auth_user_id: int, session_id: str):
         """,
         (stable_sid,)
     )
-    user_id = cur.fetchone()["id"]
+    user_id = cur.fetchone()[0]
     conn.commit()
     return user_id
+
 
 
     cur.execute(
@@ -173,7 +177,7 @@ async def register(payload: dict):
         """,
         (email, password_hash, first_name, last_name)
     )
-    user_id = cur.fetchone()["id"]
+    user_id = cur.fetchone()[0]
 
     # auto-login sessie
     session_id = str(uuid.uuid4())
@@ -213,21 +217,25 @@ async def request_password_reset(payload: dict):
         token = str(uuid.uuid4())
         expires = datetime.utcnow() + timedelta(minutes=30)
 
-        cur.execute(
-            """
-            UPDATE auth_users
-            SET reset_token = %s,
-                reset_expires = %s
-            WHERE id = %s
-            """,
-            (token, expires, user["id"])
-        )
+    user_id = user[0]
 
-        conn.commit()
+    cur.execute(
+        """
+        UPDATE auth_users
+        SET password_hash = %s,
+            reset_token = NULL,
+            reset_expires = NULL
+        WHERE id = %s
+        """,
+        (new_hash, user_id)
+    )
 
-        reset_link = f"https://askyellow.nl/reset.html?token={token}"
 
-        try:
+    conn.commit()
+
+    reset_link = f"https://askyellow.nl/reset.html?token={token}"
+
+    try:
             resend.Emails.send({
     "from": "AskYellow <no-reply@askyellow.nl>",
     "to": email,
@@ -250,7 +258,7 @@ async def request_password_reset(payload: dict):
     """
 })
 
-        except Exception as e:
+    except Exception as e:
             # fallback: log link als mail faalt
             print("❌ MAIL FAILED — RESET LINK:", reset_link)
             print(e)
