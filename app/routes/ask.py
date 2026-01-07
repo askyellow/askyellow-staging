@@ -11,7 +11,7 @@ from app.services.detect import (
     log_ai_status,
 )
 from app.services.image import generate_image
-from app.services.chat_history import (
+from app.services.history_service import (
     load_history_for_llm,
     persist_user_message,
     persist_ai_message,
@@ -113,4 +113,3 @@ async def ask_ai(request: Request):
             status_code=500,
             content={"error": "Internal server error"}
         )
-
