@@ -9,7 +9,6 @@ import uuid
 
 router = APIRouter()
 
-assert callable(verify_password)
 
 @router.post("/auth/login")
 async def login(payload: dict):
