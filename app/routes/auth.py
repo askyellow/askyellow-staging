@@ -3,8 +3,10 @@ from app.db.connection import get_db_conn
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+pwd_context = CryptContext(
+    schemes=["bcrypt", "pbkdf2_sha256"],
+    deprecated="auto"
+)
 def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
