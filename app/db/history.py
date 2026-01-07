@@ -30,9 +30,9 @@ def get_history_for_model(conn, session_id, limit=30):
     """
     cur = conn.cursor()
 
-    auth_user = get_auth_user_from_session(conn, session_id)
+    auth_user_id = auth_user[0]
     owner_id = (
-        get_or_create_user_for_auth(conn, auth_user["id"], session_id)
+        get_or_create_user_for_auth(conn, auth_user_id)
         if auth_user
         else get_or_create_user(conn, session_id)
     )
