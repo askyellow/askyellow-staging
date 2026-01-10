@@ -21,6 +21,32 @@ from app.services.context import build_context
 
 router = APIRouter()
 
+def build_frontend_messages(history, question, final_answer):
+    messages = []
+
+    for msg in history:
+        r = msg.get("role")
+        c = msg.get("content")
+
+        if r == "assistant":
+            r = "ai"
+
+        messages.append({
+            "role": r,
+            "content": c
+        })
+
+    messages.append({
+        "role": "user",
+        "content": question
+    })
+
+    messages.append({
+        "role": "ai",
+        "content": final_answer
+    })
+
+    return messages
 
 # =============================================================
 # MAIN ASK ENDPOINT
@@ -102,31 +128,12 @@ async def ask_ai(request: Request):
         # ----------------------------
         # Build messages for frontend
         # ----------------------------
-        messages_for_frontend = []
+        messages_for_frontend = build_frontend_messages(
+        history,
+        question,
+        final_answer
+        )
 
-        # existing history
-        for msg in history:
-            role = msg.get("role")
-            content = msg.get("content")
-
-        if role == "assistant":
-            role = "ai"
-
-        messages_for_frontend.append({
-            "role": role,
-            "content": content
-        })
-
-        # current turn (user + ai)
-        messages_for_frontend.append({
-            "role": "user",
-            "content": question
-        })
-
-        messages_for_frontend.append({
-            "role": "ai",
-            "content": final_answer
-        })
 
 
         # -----------------------------
