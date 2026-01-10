@@ -98,6 +98,7 @@ async def ask_ai(request: Request):
 
         persist_ai_message(session_id, final_answer)
 
+        
         # ----------------------------
         # Build messages for frontend
         # ----------------------------
@@ -123,18 +124,20 @@ async def ask_ai(request: Request):
         })
 
         messages_for_frontend.append({
-        "role": "ai",
-        "content": final_answer
+            "role": "ai",
+            "content": final_answer
         })
+
 
         # -----------------------------
         # Response
         # -----------------------------
         return {
             "answer": final_answer,
-            "output": raw_output,
+            "messages": messages_for_frontend,
             "source": "yellowmind_llm",
         }
+
 
     except Exception:
         print("ASK ENDPOINT CRASH")
