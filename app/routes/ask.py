@@ -118,9 +118,9 @@ async def ask_ai(request: Request):
 
         # current turn (user + ai)
         messages_for_frontend.append({
-    "role": "user",
-    "content": question
-})
+            "role": "user",
+            "content": question
+        })
 
         messages_for_frontend.append({
         "role": "ai",
@@ -137,7 +137,7 @@ async def ask_ai(request: Request):
         }
 
     except Exception:
-        print("🔥 ASK ENDPOINT CRASH 🔥")
+        print("ASK ENDPOINT CRASH")
         traceback.print_exc()
         return JSONResponse(
             status_code=500,
