@@ -62,6 +62,17 @@ async def ask_ai(request: Request):
         mode = (data.get("mode") or "chat").lower()
 
         # -----------------------------
+        # User-mode: koppel user_id aan session_id
+        # -----------------------------
+        if mode == "user":
+            session_id = (
+                data.get("user_id")
+                or data.get("userId")
+                or data.get("uid")
+            or ""
+        )
+
+        # -----------------------------
         # Session ID bepalen
         # -----------------------------
         session_id = (
