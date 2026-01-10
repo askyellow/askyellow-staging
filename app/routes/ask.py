@@ -77,6 +77,7 @@ async def ask_ai(request: Request):
 
         persist_user_message(session_id, question)
 
+        
         # -----------------------------
         # LLM call
         # -----------------------------
@@ -96,6 +97,35 @@ async def ask_ai(request: Request):
         log_ai_status(ai_ms)
 
         persist_ai_message(session_id, final_answer)
+
+        # ----------------------------
+        # Build messages for frontend
+        # ----------------------------
+        messages_for_frontend = []
+
+        # existing history
+        for msg in history:
+            role = msg.get("role")
+            content = msg.get("content")
+
+        if role == "assistant":
+            role = "ai"
+
+        messages_for_frontend.append({
+            "role": role,
+            "content": content
+        })
+
+        # current turn (user + ai)
+        messages_for_frontend.append({
+    "role": "user",
+    "content": question
+})
+
+        messages_for_frontend.append({
+        "role": "ai",
+        "content": final_answer
+        })
 
         # -----------------------------
         # Response
