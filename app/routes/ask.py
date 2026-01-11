@@ -51,17 +51,7 @@ def build_frontend_messages(history, question, final_answer):
 # =============================================================
 # MAIN ASK ENDPOINT
 # =============================================================
-@app.post("/ask")
-async def ask(request: Request):
-    print("🔥 HIT /ask — THIS IS THE ACTIVE BACKEND 🔥")
 
-    payload = await request.json()
-    print("🔥 PAYLOAD:", payload)
-
-    return {
-        "type": "text",
-        "answer": "DEBUG: backend geraakt"
-    }
 
 @router.post("/ask")
 async def ask_ai(request: Request):
