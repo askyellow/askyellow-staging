@@ -15,6 +15,10 @@ from app.routes.ask import router as ask_router
 from app.core.startup import on_startup
 from app.routes import tools
 
+from app.routes.ask_guest import router as guest_router
+from app.routes.ask_user import router as user_router
+
+
 
 app = FastAPI(
     title="AskYellow API",
@@ -29,6 +33,8 @@ app.include_router(main_router)
 app.include_router(ask_router)
 app.include_router(tools.router, prefix="/tool")
 app.include_router(history_router)
+app.include_router(guest_router)
+app.include_router(user_router)
 
 # -------------------------------------------------
 # MIDDLEWARE
