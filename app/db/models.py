@@ -102,6 +102,7 @@ def get_or_create_conversation(conn, user_id: int) -> int:
 
 
 
+
 def save_message(conn, conversation_id: int, role: str, content: str):
     cur = conn.cursor()
 
