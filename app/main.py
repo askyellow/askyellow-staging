@@ -18,6 +18,10 @@ from app.routes import tools
 from app.routes.ask_guest import router as guest_router
 from app.routes.ask_user import router as user_router
 
+from app.routes.ask_guest import router as ask_guest_router
+
+app.include_router(ask_guest_router)
+
 
 
 app = FastAPI(
