@@ -73,12 +73,11 @@ def chat_history(request: Request):
         raise HTTPException(status_code=403, detail="Not authenticated")
 
     conn = get_db_conn()
-    auth_user = get_auth_user_from_session(conn, session_id)
-    if not auth_user:
+    owner_id = get_auth_user_from_session(conn, session_id)
+    if not owner_id:
         conn.close()
         raise HTTPException(status_code=403, detail="Not authenticated")
 
-    owner_id = auth_user["id"]
 
     conversation_id = request.query_params.get("conversation_id")
     if conversation_id:
