@@ -1,15 +1,21 @@
 from app.db.models import get_db_conn
 
-def get_auth_user_from_session(conn, session_id: str):
+def get_auth_user_from_session(conn, session_id):
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT u.*
-        FROM auth_sessions s
-        JOIN auth_users u ON u.id = s.user_id
-        WHERE s.session_id = %s
-          AND s.expires_at > NOW()
+        SELECT id
+        FROM users
+        WHERE session_id = %s
         """,
         (session_id,)
     )
-    return cur.fetchone()
+    row = cur.fetchone()
+    if not row:
+        return None
+
+    # 👇 DIT IS CRUCIAAL
+    if isinstance(row, dict):
+        return {"id": int(row["id"])}
+    else:
+        return {"id": int(row[0])}
