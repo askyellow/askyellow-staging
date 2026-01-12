@@ -74,13 +74,12 @@ def get_or_create_user(conn, session_id: str) -> int:
 def get_or_create_conversation(conn, user_id: int) -> int:
     cur = conn.cursor()
 
-    # 🔥 Pak de MEEST RECENTE conversation
     cur.execute(
         """
         SELECT id
         FROM conversations
         WHERE user_id = %s
-        ORDER BY last_message_at DESC
+        ORDER BY last_message_at DESC NULLS LAST, id DESC
         LIMIT 1
         """,
         (user_id,)
@@ -89,7 +88,6 @@ def get_or_create_conversation(conn, user_id: int) -> int:
     if row:
         return row[0]
 
-    # ❗ Alleen als er echt GEEN bestaat → nieuwe maken
     cur.execute(
         """
         INSERT INTO conversations (user_id, started_at, last_message_at)
@@ -100,6 +98,7 @@ def get_or_create_conversation(conn, user_id: int) -> int:
     )
     conn.commit()
     return cur.fetchone()[0]
+
 
 
 
