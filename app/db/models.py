@@ -86,7 +86,7 @@ def get_or_create_conversation(conn, user_id: int) -> int:
     )
     row = cur.fetchone()
     if row:
-        return row[0]
+        return row["id"]  # ✅ dict cursor
 
     cur.execute(
         """
@@ -96,8 +96,10 @@ def get_or_create_conversation(conn, user_id: int) -> int:
         """,
         (user_id,)
     )
+    row = cur.fetchone()
     conn.commit()
-    return cur.fetchone()[0]
+    return row["id"]  # ✅ dict cursor
+
 
 
 
