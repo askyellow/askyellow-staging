@@ -62,20 +62,25 @@ def serve_chat_page():
     return FileResponse(os.path.join(base, "static/chat/chat.html"))
 
 @router.get("/chat/history")
-async def chat_history(session_id: str):
+def chat_history(request: Request):
+    session_id = request.query_params.get("session_id")
+    conversation_id = request.query_params.get("conversation_id")
+
     conn = get_db_conn()
-    cur = conn.cursor()
-
     auth_user = get_auth_user_from_session(conn, session_id)
+    if not auth_user:
+        raise HTTPException(status_code=403, detail="Not authenticated")
 
-    if auth_user:
-        auth_user_id = auth_user["id"]
-        owner_id = get_or_create_user_for_auth(conn, auth_user["id"])
+    owner_id = auth_user["id"]
+
+    # 🔑 Bepaal conversation
+    if conversation_id:
+        conv_id = int(conversation_id)
     else:
-        owner_id = get_or_create_user(conn, session_id)
+        conv_id = get_or_create_conversation(conn, owner_id)
 
-    conv_id = get_or_create_conversation(conn, owner_id)
-
+    # 📜 Haal messages op
+    cur = conn.cursor()
     cur.execute(
         """
         SELECT role, content
@@ -85,16 +90,15 @@ async def chat_history(session_id: str):
         """,
         (conv_id,)
     )
-
     rows = cur.fetchall()
+
     conn.close()
 
     return {
-        "messages": [
-            {"role": r[0], "content": r[1]}
-            for r in rows
-        ]
+        "conversation_id": conv_id,   # 🔥 CRUCIAAL
+        "messages": rows or []
     }
+
 
 
 
@@ -147,11 +151,6 @@ async def chat(payload: dict):
         session_id,
         limit=30
     )
-
-    #print("=== HISTORY FROM DB ===")
-    #for i, msg in enumerate(history):
-    #    print(i, msg["role"], msg["content"][:80])
-    #print("=======================")
 
     # 2️⃣ Payload voor model bouwen
     messages_for_model = [
