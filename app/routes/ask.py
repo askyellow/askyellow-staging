@@ -57,35 +57,19 @@ def build_frontend_messages(history, question, final_answer):
 async def ask_ai(request: Request):
     try:
         data = await request.json()
+
         conversation_id = data.get("conversation_id")
         question = (data.get("question") or "").strip()
         language = (data.get("language") or "nl").lower()
         mode = (data.get("mode") or "chat").lower()
 
-        # -----------------------------
-        # User-mode: koppel user_id aan session_id
-        # -----------------------------
-        if mode == "user":
-            session_id = (
-                data.get("user_id")
-                or data.get("userId")
-                or data.get("uid")
-            or ""
-        )
+        if not conversation_id:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "conversation_id ontbreekt"}
+            )
 
-        # -----------------------------
-        # Session ID bepalen
-        # -----------------------------
-        session_id = (
-            data.get("session_id")
-            or data.get("sessionId")
-            or data.get("session")
-            or data.get("sid")
-            or ""
-        )
-        session_id = str(session_id).strip()
-        if not session_id:
-            session_id = "anon-" + secrets.token_hex(8)
+        conversation_id = int(conversation_id)
 
         if not question:
             return JSONResponse(
@@ -113,11 +97,6 @@ async def ask_ai(request: Request):
         context = build_context(question, language)
         history = load_history_for_llm(conversation_id)
 
-        persist_user_message(conversation_id, question)
-        persist_ai_message(conversation_id, final_answer)
-
-
-        
         # -----------------------------
         # LLM call
         # -----------------------------
@@ -136,35 +115,47 @@ async def ask_ai(request: Request):
         ai_ms = int((time.time() - start_ai) * 1000)
         log_ai_status(ai_ms)
 
-        persist_ai_message(session_id, final_answer)
+        # -----------------------------
+        # Opslaan in NIEUWE structuur
+        # -----------------------------
+        conn = get_db_conn()
+        cur = conn.cursor()
 
-        
-        # ----------------------------
-        # Build messages for frontend
-        # ----------------------------
-        messages_for_frontend = build_frontend_messages(
-        history,
-        question,
-        final_answer
+        cur.execute(
+            """
+            INSERT INTO messages (conversation_id, role, content)
+            VALUES (%s, %s, %s)
+            """,
+            (conversation_id, "user", question)
         )
 
+        cur.execute(
+            """
+            INSERT INTO messages (conversation_id, role, content)
+            VALUES (%s, %s, %s)
+            """,
+            (conversation_id, "assistant", final_answer)
+        )
 
+        cur.execute(
+            """
+            UPDATE conversations
+            SET last_message_at = NOW()
+            WHERE id = %s
+            """,
+            (conversation_id,)
+        )
+
+        conn.commit()
+        conn.close()
 
         # -----------------------------
         # Response
         # -----------------------------
         return {
             "answer": final_answer,
-            "messages": messages_for_frontend,
             "source": "yellowmind_llm",
         }
-        cur = conn.cursor()
-        cur.execute(
-        "UPDATE conversations SET last_message_at = NOW() WHERE id = %s",
-        (conversation_id,)
-        )
-        conn.commit()
-
 
     except Exception:
         print("ASK ENDPOINT CRASH")
