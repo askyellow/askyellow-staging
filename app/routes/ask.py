@@ -57,7 +57,7 @@ def build_frontend_messages(history, question, final_answer):
 async def ask_ai(request: Request):
     try:
         data = await request.json()
-
+        conversation_id = data.get("conversation_id")
         question = (data.get("question") or "").strip()
         language = (data.get("language") or "nl").lower()
         mode = (data.get("mode") or "chat").lower()
@@ -111,9 +111,11 @@ async def ask_ai(request: Request):
         # Context & history
         # -----------------------------
         context = build_context(question, language)
-        history = load_history_for_llm(session_id)
+        history = load_history_for_llm(conversation_id)
 
-        persist_user_message(session_id, question)
+        persist_user_message(conversation_id, question)
+        persist_ai_message(conversation_id, final_answer)
+
 
         
         # -----------------------------
@@ -156,6 +158,12 @@ async def ask_ai(request: Request):
             "messages": messages_for_frontend,
             "source": "yellowmind_llm",
         }
+        cur = conn.cursor()
+        cur.execute(
+        "UPDATE conversations SET last_message_at = NOW() WHERE id = %s",
+        (conversation_id,)
+        )
+        conn.commit()
 
 
     except Exception:
