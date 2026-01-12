@@ -71,33 +71,36 @@ def get_or_create_user(conn, session_id: str) -> int:
     return cur.fetchone()["id"]
 
 
-def get_or_create_conversation(conn, owner_id: int) -> int:
+def get_or_create_conversation(conn, user_id: int) -> int:
     cur = conn.cursor()
 
+    # 🔥 Pak de MEEST RECENTE conversation
     cur.execute(
         """
         SELECT id
         FROM conversations
         WHERE user_id = %s
-        ORDER BY started_at DESC
+        ORDER BY last_message_at DESC
         LIMIT 1
         """,
-        (owner_id,)
+        (user_id,)
     )
     row = cur.fetchone()
     if row:
-        return row["id"]
+        return row[0]
 
+    # ❗ Alleen als er echt GEEN bestaat → nieuwe maken
     cur.execute(
         """
-        INSERT INTO conversations (user_id)
-        VALUES (%s)
+        INSERT INTO conversations (user_id, started_at, last_message_at)
+        VALUES (%s, NOW(), NOW())
         RETURNING id
         """,
-        (owner_id,)
+        (user_id,)
     )
     conn.commit()
-    return cur.fetchone()["id"]
+    return cur.fetchone()[0]
+
 
 
 def save_message(conn, conversation_id: int, role: str, content: str):
