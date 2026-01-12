@@ -36,6 +36,7 @@ def get_history_for_model(conn, session_id, limit=30):
         if auth_user
         else get_or_create_user(conn, session_id)
     )
+    owner_id = int(owner_id)
 
     conv_id = get_or_create_conversation(conn, owner_id)
 
