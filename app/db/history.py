@@ -102,6 +102,9 @@ def chat_history(request: Request):
         "conversation_id": conv_id,
         "messages": rows or []
     }
+def require_auth_session(request: Request):
+    if request.method == "OPTIONS":
+        return None
 
 
 
