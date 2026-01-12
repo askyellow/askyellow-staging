@@ -63,23 +63,28 @@ def serve_chat_page():
 
 @router.get("/chat/history")
 def chat_history(request: Request):
+    # ✅ ALTIJD toestaan
+    if request.method == "OPTIONS":
+        return {}
+
     session_id = request.query_params.get("session_id")
-    conversation_id = request.query_params.get("conversation_id")
+    if not session_id:
+        raise HTTPException(status_code=403, detail="Not authenticated")
 
     conn = get_db_conn()
     auth_user = get_auth_user_from_session(conn, session_id)
     if not auth_user:
+        conn.close()
         raise HTTPException(status_code=403, detail="Not authenticated")
 
     owner_id = auth_user["id"]
 
-    # 🔑 Bepaal conversation
+    conversation_id = request.query_params.get("conversation_id")
     if conversation_id:
         conv_id = int(conversation_id)
     else:
         conv_id = get_or_create_conversation(conn, owner_id)
 
-    # 📜 Haal messages op
     cur = conn.cursor()
     cur.execute(
         """
@@ -91,13 +96,13 @@ def chat_history(request: Request):
         (conv_id,)
     )
     rows = cur.fetchall()
-
     conn.close()
 
     return {
-        "conversation_id": conv_id,   # 🔥 CRUCIAAL
+        "conversation_id": conv_id,
         "messages": rows or []
     }
+
 
 
 
