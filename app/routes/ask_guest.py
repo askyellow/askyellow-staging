@@ -1,28 +1,21 @@
 from fastapi import APIRouter, Request
-from app.services.llm import run_llm
-from app.context import build_context
+from fastapi.responses import JSONResponse
+import time
 
 router = APIRouter()
 
 @router.post("/ask/guest")
 async def ask_guest(request: Request):
-    data = await request.json()
-    question = (data.get("question") or "").strip()
-    language = (data.get("language") or "nl").lower()
+    try:
+        data = await request.json()
+        question = (data.get("question") or "").strip()
+        if not question:
+            return JSONResponse(status_code=400, content={"error": "Geen vraag"})
 
-    if not question:
-        return {"error": "No question"}
+        # 🔹 Tijdelijk dummy-antwoord (vervang straks door echte LLM)
+        time.sleep(0.2)
+        answer = f"(gast) Je vroeg: {question}"
 
-    context = build_context(question, language)
-
-    answer, _ = run_llm(
-        question=question,
-        language=language,
-        kb_answer=context["kb_answer"],
-        sql_match=context["sql_match"],
-        hints=[],
-        history=[],
-        mode="guest",
-    )
-
-    return {"answer": answer}
+        return {"answer": answer}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": "Guest error"})
