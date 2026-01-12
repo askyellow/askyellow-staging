@@ -60,9 +60,11 @@ async def login(payload: dict):
 
     return {
     "success": True,
-    "session": session_id,
+    "session": session_id,          # login-sessie (auth)
+    "user_id": str(user_id),        # 👈 STABIELE IDENTITEIT
     "first_name": first_name
 }
+
 
 
 
@@ -112,9 +114,6 @@ def get_or_create_user_for_auth(conn, auth_user_id: int):
     user_id = row["id"] if isinstance(row, dict) else row[0]
     conn.commit()
     return user_id
-
-
-
 
     cur.execute(
         """
