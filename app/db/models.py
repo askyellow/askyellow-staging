@@ -115,12 +115,13 @@ def save_message(conn, conversation_id: int, role: str, content: str):
     )
 
     cur.execute(
-        """
-        UPDATE conversations
-        SET last_message_at = NOW()
-        WHERE id = %s
-        """,
-        (conversation_id,),
-    )
+    """
+    UPDATE conversations
+    SET last_message_at = NOW()
+    WHERE id = %s
+    """,
+    (conv_id,)
+)
+
 
     conn.commit()
