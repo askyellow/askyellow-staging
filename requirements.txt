@@ -10,3 +10,4 @@ pytz
 passlib[bcrypt]
 bcrypt
 bcrypt<4.0
+resend
