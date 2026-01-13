@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request, HTTPException
-from app.auth import require_auth_session
+from app.db.auth import get_auth_user_from_session
 
 router = APIRouter()
 
