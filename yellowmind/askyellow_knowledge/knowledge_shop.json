@@ -1,0 +1,38 @@
+{
+  "entries": [
+    {
+      "patterns": [
+        "heb je een app",
+        "is er een app",
+        "komt er een app",
+        "askyellow app",
+        "mobile app askyellow"
+      ],
+      "category": "shop",
+      "lang": "nl",
+      "answer": "Op dit moment gebruik je AskYellow via de website (askyellow.nl en shop.askyellow.nl). Een eigen AskYellow-app staat wél op de wensenlijst en daar wordt in de techniek en voorbereiding nu al rekening mee gehouden. Ik kan je alleen nog geen lanceerdatum of harde belofte geven. Voor nieuws hierover zijn de officiële kanalen van AskYellow (website en socials) altijd het meest up-to-date. 💛"
+    },
+    {
+      "patterns": [
+        "wat zijn de verzendkosten",
+        "verzending",
+        "shipping cost",
+        "hoeveel kost verzending"
+      ],
+      "category": "shop",
+      "lang": "nl",
+      "answer": "De exacte verzendkosten en eventuele acties (zoals kortingen of gratis verzending) kunnen veranderen. De meest actuele informatie staat altijd op de productpagina’s en in het verzend- of checkout-overzicht van de AskYellow-shop (shop.askyellow.nl). Ik kan je wel helpen om uit te leggen waar je dat op de site kunt vinden of wat bepaalde termen betekenen. 😊"
+    },
+    {
+      "patterns": [
+        "kan ik retourneren",
+        "hoe werkt retour",
+        "retourbeleid",
+        "terugsturen"
+      ],
+      "category": "shop",
+      "lang": "nl",
+      "answer": "AskYellow hanteert een retourbeleid dat op de webshop zelf wordt uitgelegd. Daar vind je de officiële voorwaarden, termijnen en stappen (bijvoorbeeld hoe je een retour aanmeldt en wat wel/niet kan worden teruggestuurd). Ik kan je in gewone taal helpen om dat beleid te begrijpen, maar voor de precieze en juridisch geldige regels is de tekst op de website van de AskYellow-shop (shop.askyellow.nl) altijd leidend. 💛"
+    }
+  ]
+}
