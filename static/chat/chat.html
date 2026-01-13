@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YellowMind Chat</title>
+<style>
+  body {
+    margin:0; padding:0;
+    font-family: Poppins, sans-serif;
+    background:#ffffff;
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+    overflow:hidden;
+  }
+  #chatHeader {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px 16px;
+    background:linear-gradient(135deg,#FFD700,#FFB700);
+    font-weight:900;
+    color:#000;
+    box-shadow:0 2px 8px rgba(0,0,0,0.25);
+  }
+  #chatMessages {
+    flex:1;
+    padding:16px;
+    overflow-y:auto;
+    background:#fff;
+  }
+  .bubble {
+    max-width:80%;
+    padding:12px 16px;
+    margin:8px 0;
+    border-radius:14px;
+    font-size:.95rem;
+    line-height:1.4;
+    word-break:break-word;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+  }
+  .user { background:#FFD700; color:#111; margin-left:auto; }
+  .ai { background:#f3f3f3; border:1px solid #DDD; margin-right:auto; }
+  #inputRow {
+    display:flex;
+    padding:10px;
+    background:#fafafa;
+    border-top:1px solid #DDD;
+  }
+  #chatInput {
+    flex:1; padding:10px 14px;
+    border:1px solid #CCC;
+    border-radius:8px;
+  }
+  #sendBtn {
+    margin-left:8px; padding:10px 18px;
+    background:#FFD700; border:none;
+    font-weight:800; border-radius:8px;
+    cursor:pointer;
+  }
+</style>
+</head>
+
+<body>
+
+<div id="chatHeader">
+  <span>YellowMind Chat</span>
+  <button id="closeChat" style="background:none;border:none;font-size:22px;font-weight:900;cursor:pointer;">×</button>
+</div>
+
+<div id="chatMessages"></div>
+
+<div id="inputRow">
+  <input id="chatInput" type="text" placeholder="Typ je bericht...">
+  <button id="sendBtn">➤</button>
+</div>
+
+<script>
+let CHAT_SESSION_ID = null;
+
+const msgBox = document.getElementById("chatMessages");
+const input = document.getElementById("chatInput");
+const sendBtn = document.getElementById("sendBtn");
+
+function addBubble(text, type){
+  const div = document.createElement("div");
+  div.className = "bubble " + type;
+  div.innerHTML = text;
+  msgBox.appendChild(div);
+  msgBox.scrollTop = msgBox.scrollHeight;
+}
+
+document.getElementById("closeChat").onclick = () => {
+  window.parent.postMessage({type:"closeOverlay"},"*");
+};
+
+window.addEventListener("message",(event)=>{
+  if(event.data.type === "welcome"){
+    CHAT_SESSION_ID = event.data.session;
+    addBubble("Hoi! 👋 Waarmee kan ik helpen?","ai");
+  }
+});
+
+async function sendMessage(){
+  const text = input.value.trim();
+  if(!text) return;
+
+  addBubble(text,"user");
+  input.value = "";
+
+  const thinking = document.createElement("div");
+  thinking.className = "bubble ai";
+  thinking.innerHTML = "...";
+  msgBox.appendChild(thinking);
+  msgBox.scrollTop = msgBox.scrollHeight;
+
+  try{
+    const res = await fetch("https://askyellow-staging.onrender.com/ask",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        question:text,
+        language:"nl",
+        session:CHAT_SESSION_ID
+      })
+    });
+
+    const data = await res.json();
+    let answer = "⚠️ Geen geldig antwoord.";
+
+    try {
+      if(data.output && Array.isArray(data.output))
+        answer = data.output[1].content[0].text;
+      else if(data.response && data.response.output)
+        answer = data.response.output[1].content[0].text;
+      else if(data.answer)
+        answer = data.answer;
+    } catch(e){}
+
+    thinking.remove();
+    addBubble(answer,"ai");
+
+  } catch(e){
+    thinking.remove();
+    addBubble("⚠️ Ik kan geen antwoord ophalen.","ai");
+  }
+}
+
+sendBtn.onclick = sendMessage;
+input.addEventListener("keydown",(e)=>{ if(e.key==="Enter") sendMessage(); });
+</script>
+
+</body>
+</html>
