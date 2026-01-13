@@ -34,6 +34,10 @@ from passlib.context import CryptContext
 from passlib.context import CryptContext
 from core.time_context import TimeContext
 
+from app.routes import health
+
+app.include_router(health.router, include_in_schema=False)
+
 
 TIME_CONTEXT = TimeContext()
 
