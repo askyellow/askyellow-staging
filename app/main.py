@@ -17,7 +17,6 @@ from app.routes import tools
 
 from app.routes.ask_guest import router as ask_guest_router
 
-app.include_router(ask_guest_router)
 
 
 app = FastAPI(
