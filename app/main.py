@@ -32,7 +32,6 @@ app.include_router(ask_router)
 app.include_router(tools.router, prefix="/tool")
 app.include_router(history_router)
 app.include_router(guest_router)
-app.include_router(user_router)
 
 # -------------------------------------------------
 # MIDDLEWARE
