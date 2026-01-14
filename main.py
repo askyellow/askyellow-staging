@@ -41,14 +41,7 @@ app.include_router(health_router, include_in_schema=False)
 
 from core.time_context import build_time_context, greeting
 
-TIME_CONTEXT = TimeContext()
 
-answer = (
-    f"Vandaag is het {TIME_CONTEXT.today_string()} "
-    f"en het is nu {TIME_CONTEXT.time_string()}."
-)
-
-TIME_CONTEXT = TimeContext()
 
 pwd_context = CryptContext(
     schemes=["bcrypt_sha256", "scrypt"],
