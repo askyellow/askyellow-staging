@@ -33,9 +33,9 @@ from passlib.context import CryptContext
 
 from passlib.context import CryptContext
 
-from routes.health import health
+from routes.health import router as health_router
+app.include_router(health_router, include_in_schema=False)
 
-app.include_router(health.router, include_in_schema=False)
 
 from core.time_context import build_time_context, greeting
 
