@@ -34,8 +34,11 @@ from passlib.context import CryptContext
 from passlib.context import CryptContext
 from core.time_context import TimeContext
 
-from routes import health
+from app.routes import health
 
+app.include_router(health.router, include_in_schema=False)
+
+from core.time_context import build_time_context, greeting
 
 TIME_CONTEXT = TimeContext()
 
@@ -407,14 +410,24 @@ async def chat(payload: dict):
         limit=30
     )
 
+    # ⏰ Time context (centrale waarheid)
+    time_context = build_time_context()
+    hello = greeting()
+
     # 2️⃣ Payload voor model bouwen
     messages_for_model = [
-        {
-            "role": "system",
-            "content": SYSTEM_PROMPT
-        }
-    ]
+    {
+        "role": "system",
+        "content": f"""
+        {SYSTEM_PROMPT}
 
+{time_context}
+
+Begroeting voor dit gesprek: "{hello}"
+Gebruik deze begroeting exact zoals opgegeven.
+"""
+    }
+]
     for msg in history:
         messages_for_model.append({
             "role": msg["role"],
@@ -427,7 +440,7 @@ async def chat(payload: dict):
     })
 
     # absolute noodrem
-    messages = messages[:20]
+    messages_for_model = messages_for_model[:20]
 
 
     # 3️⃣ OpenAI call
