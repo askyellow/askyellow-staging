@@ -9,6 +9,8 @@ from fastapi.responses import FileResponse
 from fastapi import Request
 from core.time import TimeContext
 
+app = FastAPI(title="YellowMind API")
+
 import os
 import uvicorn
 import requests
@@ -183,8 +185,6 @@ from yellowmind.identity_origin import try_identity_origin_answer
 # =============================================================
 # 2. FASTAPI APP & CORS
 # =============================================================
-
-app = FastAPI(title="YellowMind API")
 
 app.add_middleware(
     CORSMiddleware,
