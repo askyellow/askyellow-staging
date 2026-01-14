@@ -102,8 +102,34 @@ Aanroep in de LLM-API:
 - Gebruik dit geheel als de SYSTEM-rol / system message.
 - Voeg geen extra, tegenstrijdige system-teksten toe.
 
+
 ------------------------------------------------
-3. KNOWLEDGE ENGINE GEBRUIK
+
+3. PROMPT ASSEMBLY — VERPLICHTE MODULES (VOLWASSEN GEDRAG)
+Voor consistent volwassen gedrag moeten de volgende modules altijd worden meegeplakt (ongeacht v2 of v3 master prompt):
+
+1) core/communication_baseline.txt
+2) behaviour/behaviour_rules.txt
+3) behaviour/uncertainty_handling.txt
+4) behaviour/boundaries_safety.txt
+5) knowledge/limitations.txt
+6) memory/memory_user_explanation.txt
+
+CONFLICT-REGEL (belangrijk)
+- Als er ergens staat “NOOIT zeggen dat je iets niet kan” of “NOOIT weigeren”, dan is dat fout:
+  YellowMind mag en moet weigeren wanneer nodig.
+- Bij weigeren altijd de “Menselijk nee”-structuur volgen:
+  erkenning → duidelijke nee → korte reden → alternatief → (optioneel) micro-vraag.
+- Vermijd technische tool/prompt uitleg; weiger menselijk en oplossingsgericht.
+
+SMOKE TESTS (snelle check na deploy)
+- Vraag iets wat niet mag (privacy/schadelijk) → moet warm weigeren + alternatief.
+- Vraag iets wat ze niet kan verifiëren (account/logs/live data) → moet eerlijk “kan ik niet direct checken” + vraag om info.
+- Vraag iets onduidelijks → “nee, niet met zekerheid” + 1 micro-vraag.
+
+
+------------------------------------------------
+4. KNOWLEDGE ENGINE GEBRUIK
 
 Bestanden:
 - `knowledge_engine.py`
@@ -150,7 +176,7 @@ Aanpak per uservraag:
      - de LIMITATIONS respecteren.
 
 ------------------------------------------------
-4. MODES, USER TYPES & ABONNEMENTEN
+5. MODES, USER TYPES & ABONNEMENTEN
 
 Je kunt de LLM extra hints geven via je backend, bijvoorbeeld:
 
@@ -196,7 +222,7 @@ Abonnement-logica:
     - of dat iets (nog) niet beschikbaar is.
 
 ------------------------------------------------
-5. GEHEUGEN & PRIVACY (BACKEND RICHTLIJNEN)
+6. GEHEUGEN & PRIVACY (BACKEND RICHTLIJNEN)
 
 De conceptregels staan in:
 - `MEMORY_POLICY`
@@ -244,7 +270,7 @@ Backend-implementatie (globaal advies):
      buiten wat backend daadwerkelijk meegeeft.
 
 ------------------------------------------------
-6. TOOLS & (TOEKOMSTIGE) INTEGRATIES
+7. TOOLS & (TOEKOMSTIGE) INTEGRATIES
 
 YellowMind kan in de toekomst meer “armen en benen” krijgen via tools.  
 De backend beslist:
@@ -309,7 +335,7 @@ Belangrijk:
   - resultaat terug in context.
 
 ------------------------------------------------
-7. REQUEST-FLOW (END-TO-END)
+8. REQUEST-FLOW (END-TO-END)
 
 Voor elk nieuw bericht van de gebruiker:
 
@@ -353,7 +379,7 @@ Voor elk nieuw bericht van de gebruiker:
 7) Toon antwoord aan gebruiker.
 
 ------------------------------------------------
-8. LOGGING & PRIVACY (KORTE RICHTLIJN)
+9. LOGGING & PRIVACY (KORTE RICHTLIJN)
 
 - Log géén:
   - plaintext wachtwoorden,
@@ -376,7 +402,7 @@ YellowMind zelf:
   - MEMORY_POLICY & KNOWLEDGE_PRIVACY de grenzen bepalen.
 
 ------------------------------------------------
-9. DEBUGGEN & TUNEN
+10. DEBUGGEN & TUNEN
 
 Bij onverwacht gedrag:
 

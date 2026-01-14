@@ -2,7 +2,10 @@ import os
 import json
 import unicodedata
 
-KNOWLEDGE_PATH = "yellowmind/askyellow_knowledge/"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+KNOWLEDGE_PATH = os.path.join(BASE_DIR, "askyellow_knowledge")
+
 
 
 # -----------------------------
