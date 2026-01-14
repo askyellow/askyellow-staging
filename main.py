@@ -34,7 +34,8 @@ from passlib.context import CryptContext
 from passlib.context import CryptContext
 from core.time_context import TimeContext
 
-from app.routes import health
+from routes import health
+
 
 TIME_CONTEXT = TimeContext()
 
@@ -186,16 +187,24 @@ app = FastAPI(title="YellowMind API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://www.askyellow.nl",
+        # NL (live)
         "https://askyellow.nl",
+        "https://www.askyellow.nl",
+
+        # EU (staging / test)
+        "https://askyellow.eu",
+        "https://www.askyellow.eu",
+
+        # lokaal
         "http://localhost:5500",
         "http://127.0.0.1:5500",
-        "http://localhost:3000"
+        "http://localhost:3000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # =============================================================
 # 1. ENVIRONMENT & OPENAI CLIENT
