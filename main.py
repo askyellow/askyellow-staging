@@ -1773,10 +1773,13 @@ async def ask(request: Request):
     web_results = run_websearch_internal(question)
     web_context = build_web_context(web_results)
 
+    time_context = build_time_context()
+
     hints = {
-        "time_context": TIME_CONTEXT.system_prompt(),
+       "time_context": time_context,
         "web_context": web_context
-    }
+}
+
 
     final_answer, _ = call_yellowmind_llm(
         question=question,
