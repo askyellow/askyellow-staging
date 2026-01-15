@@ -16,7 +16,7 @@ def serve_chat_page():
 
 @router.get("/chat/history")
 async def chat_history(session_id: str):
-    conn = get_db_conn()
+    conn = get_conn()
     cur = conn.cursor()
 
     auth_user = get_auth_user_from_session(conn, session_id)
@@ -59,7 +59,7 @@ async def chat(payload: dict):
             detail="session_id of message ontbreekt"
         )
 
-    conn = get_db_conn()
+    conn = get_conn()
     cur = conn.cursor()
 
     # 1️⃣ History ophalen
@@ -202,7 +202,7 @@ def get_conversation_history_for_model(conn, session_id, limit=12):
 
 def store_message_pair(session_id, user_text, assistant_text):
     try:
-        conn = get_db_conn()
+        conn = get_conn()
         conv_id, _ = get_history_for_model(conn, session_id)
         save_message(conn, conv_id, "user", user_text)
         save_message(conn, conv_id, "assistant", assistant_text)
