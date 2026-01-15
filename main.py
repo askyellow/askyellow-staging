@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, JSONResponse
 from dotenv import load_dotenv
 from openai import OpenAI
-from chat_engine.routes import router as chat_router
 from fastapi import FastAPI, Request
 from core.time import TimeContext
 
