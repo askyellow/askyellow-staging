@@ -36,6 +36,11 @@ from routes.health import router as health_router
 app.include_router(health_router, include_in_schema=False)
 app.include_router(chat_router)
 
+from chat_shared import (
+    get_auth_user_from_session,
+    get_history_for_model,
+)
+
 
 
 
@@ -949,24 +954,7 @@ async def reset_password(payload: dict):
 
     return {"success": True}
 
-def get_auth_user_from_session(conn, session_id: str):
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT au.id, au.first_name
-        FROM user_sessions us
-        JOIN auth_users au ON au.id = us.user_id
-        WHERE us.session_id = %s
-          AND us.expires_at > NOW()
-    """, (session_id,))
 
-    row = cur.fetchone()
-    if not row:
-        return None
-
-    return {
-    "id": row["id"],
-    "first_name": row["first_name"]
-}
 
 
 # =============================================================
