@@ -4,7 +4,7 @@ from fastapi.responses import Response, JSONResponse
 from dotenv import load_dotenv
 from openai import OpenAI
 from chat_engine.routes import router as chat_router
-from fastapi import Request
+from fastapi import FastAPI, Request
 from core.time import TimeContext
 from chat import router as chat_router
 
