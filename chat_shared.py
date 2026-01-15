@@ -1,4 +1,4 @@
-# chat_shared.py
+# chat_shared.py al deze functies hier woorden gedeelt gebruikt door main.py en chat.py
 
 from typing import List, Tuple, Optional
 
@@ -151,7 +151,7 @@ def get_recent_messages(conn, conversation_id: int, limit: int = 12):
 
     cur.execute(
         """
-        SELECT role, content
+        SELECT role, content, created_at,
         FROM messages
         WHERE conversation_id = %s
         ORDER BY created_at DESC
@@ -170,6 +170,7 @@ def get_recent_messages(conn, conversation_id: int, limit: int = 12):
         {
             "role": r["role"] if isinstance(r, dict) else r[0],
             "content": r["content"] if isinstance(r, dict) else r[1],
+            "created_at": r["created_at"] if isinstance(r, dict) else r[2],
         }
         for r in rows
     ]
@@ -194,7 +195,7 @@ def get_history_for_model(conn, session_id, limit=30):
 
     cur.execute(
         """
-        SELECT role, content
+        SELECT role, content, created_at,
         FROM messages
         WHERE conversation_id = %s
         ORDER BY created_at DESC
@@ -223,7 +224,7 @@ def get_conversation_history_for_model(conn, session_id, limit=12):
 
     cur.execute(
         """
-        SELECT role, content
+        SELECT role, content,created_at,
         FROM messages
         WHERE conversation_id = %s
         ORDER BY created_at DESC
