@@ -8,24 +8,6 @@ from chat_engine.db import get_conn
 # (optioneel, alleen als je ze gebruikt in de helpers)
 from datetime import datetime
 
-def get_auth_user_from_session(conn, session_id: str):
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT au.id, au.first_name
-        FROM user_sessions us
-        JOIN auth_users au ON au.id = us.user_id
-        WHERE us.session_id = %s
-          AND us.expires_at > NOW()
-    """, (session_id,))
-
-    row = cur.fetchone()
-    if not row:
-        return None
-
-    return {
-    "id": row["id"],
-    "first_name": row["first_name"]
-}
 
 def get_auth_user_from_session(conn, session_id: str):
     cur = conn.cursor()
@@ -193,3 +175,74 @@ def get_recent_messages(conn, conversation_id: int, limit: int = 12):
     ]
 
     return messages
+
+def get_history_for_model(conn, session_id, limit=30):
+    """
+    Haalt de LAATSTE berichten van een gesprek op,
+    bedoeld voor LLM-context (oud → nieuw).
+    """
+    cur = conn.cursor()
+
+    auth_user = get_auth_user_from_session(conn, session_id)
+    owner_id = (
+        get_or_create_user_for_auth(conn, auth_user["id"], session_id)
+        if auth_user
+        else get_or_create_user(conn, session_id)
+    )
+
+    conv_id = get_or_create_conversation(conn, owner_id)
+
+    cur.execute(
+        """
+        SELECT role, content
+        FROM messages
+        WHERE conversation_id = %s
+        ORDER BY created_at DESC
+        LIMIT %s
+        """,
+        (conv_id, limit)
+    )
+
+    rows = cur.fetchall()
+    rows.reverse()  # 🔥 cruciaal: oud → nieuw voor het model
+
+    return conv_id, rows
+
+    
+def get_conversation_history_for_model(conn, session_id, limit=12):
+    cur = conn.cursor()
+
+    auth_user = get_auth_user_from_session(conn, session_id)
+    owner_id = (
+        get_or_create_user_for_auth(conn, auth_user["id"], session_id)
+        if auth_user
+        else get_or_create_user(conn, session_id)
+    )
+
+    conv_id = get_or_create_conversation(conn, owner_id)
+
+    cur.execute(
+        """
+        SELECT role, content
+        FROM messages
+        WHERE conversation_id = %s
+        ORDER BY created_at DESC
+        LIMIT %s
+        """,
+        (conv_id, limit)
+    )
+
+    rows = list(reversed(cur.fetchall()))
+    return conv_id, rows
+
+def store_message_pair(session_id, user_text, assistant_text):
+    try:
+        conn = get_conn()
+        conv_id, _ = get_history_for_model(conn, session_id)
+        save_message(conn, conv_id, "user", user_text)
+        save_message(conn, conv_id, "assistant", assistant_text)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print("⚠️ History save failed:", e)
+
