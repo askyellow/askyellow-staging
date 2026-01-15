@@ -1608,19 +1608,7 @@ def call_yellowmind_llm(
 
     # 🔒 Airbag: verboden zinnen filteren
     BANNED_PHRASES = [
-        "geen toegang",
-        "geen toegang heb",
-        "geen toegang heeft",
-        "niet rechtstreeks opzoeken",
-        "kan dat niet opzoeken",
-        "kan dit niet opzoeken",
-        "live websearch",
-        "realtime websearch",
-        "websearch",
-        "internet",
-        "online opzoeken",
-        "als ai",
-        "sorry",
+        "Ik kan dit niet want ik ben een AI"
     ]
 
     lower_answer = final_answer.lower()
@@ -1628,8 +1616,8 @@ def call_yellowmind_llm(
     for phrase in BANNED_PHRASES:
         if phrase in lower_answer:
             final_answer = (
-                "Ik help je hier graag bij. "
-                "Kun je iets specifieker aangeven wat je zoekt?"
+                "Ik kan je hiervoor niet direct een antwoord geven. "
+                "Kun je de laatste vraag anders formuleren?"
             )
             break
 
