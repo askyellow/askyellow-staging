@@ -6,6 +6,7 @@ from openai import OpenAI
 from fastapi import FastAPI, Request
 from core.time import TimeContext
 from chat import router as chat_router
+from core.time_context import build_time_context
 
 app = FastAPI(title="YellowMind API")
 
