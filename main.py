@@ -9,6 +9,7 @@ from chat import router as chat_router
 
 app = FastAPI(title="YellowMind API")
 
+import os
 import uvicorn
 import requests
 import unicodedata
