@@ -8,6 +8,55 @@ from chat_engine.utils import get_logical_date
 
 router = APIRouter()
 
+def get_auth_user_from_session(conn, session_id: str):
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT au.id, au.first_name
+        FROM user_sessions us
+        JOIN auth_users au ON au.id = us.user_id
+        WHERE us.session_id = %s
+          AND us.expires_at > NOW()
+    """, (session_id,))
+
+    row = cur.fetchone()
+    if not row:
+        return None
+
+    return {
+    "id": row["id"],
+    "first_name": row["first_name"]
+}
+
+def get_or_create_user_for_auth(conn, auth_user_id: int, session_id: str):
+    """
+    Zorgt dat een ingelogde user altijd dezelfde 'users'-row krijgt,
+    gebaseerd op een stabiele session_id: auth-<auth_user_id>.
+    """
+    cur = conn.cursor()
+    stable_sid = f"auth-{auth_user_id}"
+
+    # 1) Bestaat deze user al?
+    cur.execute("SELECT id FROM users WHERE session_id = %s", (stable_sid,))
+    row = cur.fetchone()
+    if row:
+        # RealDictCursor -> dict; anders tuple
+        return row["id"] if isinstance(row, dict) else row[0]
+
+    # 2) Anders aanmaken
+    cur.execute(
+        """
+        INSERT INTO users (session_id)
+        VALUES (%s)
+        RETURNING id
+        """,
+        (stable_sid,),
+    )
+    row = cur.fetchone()
+    conn.commit()
+
+    return row["id"] if isinstance(row, dict) else row[0]
+
+
 @router.get("/chat")
 def serve_chat_page():
     base = os.path.dirname(os.path.abspath(__file__))
@@ -140,24 +189,6 @@ Gebruik deze begroeting exact zoals opgegeven.
         "reply": answer
     }
 
-def get_auth_user_from_session(conn, session_id: str):
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT au.id, au.first_name
-        FROM user_sessions us
-        JOIN auth_users au ON au.id = us.user_id
-        WHERE us.session_id = %s
-          AND us.expires_at > NOW()
-    """, (session_id,))
-
-    row = cur.fetchone()
-    if not row:
-        return None
-
-    return {
-    "id": row["id"],
-    "first_name": row["first_name"]
-}
     
 def get_history_for_model(conn, session_id, limit=30):
     """

@@ -806,58 +806,6 @@ async def login(payload: dict):
 
 
 
-
-def get_or_create_user_for_auth(conn, auth_user_id: int, session_id: str):
-    cur = conn.cursor()
-    stable_sid = f"auth-{auth_user_id}"
-
-    cur.execute(
-        "SELECT id FROM users WHERE session_id = %s",
-        (stable_sid,)
-    )
-    row = cur.fetchone()
-    if row:
-        return row["id"]
-
-    cur.execute(
-        """
-        INSERT INTO users (session_id)
-        VALUES (%s)
-        RETURNING id
-        """,
-        (stable_sid,)
-    )
-    user_id = cur.fetchone()["id"]
-    conn.commit()
-    return user_id
-
-    cur.execute(
-        """
-        INSERT INTO users (session_id)
-        VALUES (%s)
-        RETURNING id
-        """,
-        (stable_sid,)
-    )
-    conn.commit()
-    row = cur.fetchone()
-    row = cur.fetchone()
-    return row[0]
-
-
-    # 2) Anders maken we 'm aan
-    cur.execute(
-        """
-        INSERT INTO users (session_id)
-        VALUES (%s)
-        RETURNING id
-        """,
-        (stable_sid,),
-    )
-    conn.commit()
-    row = cur.fetchone()
-    return row["id"] if not isinstance(row, dict) else row["id"]
-
 @app.post("/auth/register")
 async def register(payload: dict):
     email = (payload.get("email") or "").lower().strip()
