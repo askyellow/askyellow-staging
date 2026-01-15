@@ -140,6 +140,24 @@ Gebruik deze begroeting exact zoals opgegeven.
         "reply": answer
     }
 
+def get_auth_user_from_session(conn, session_id: str):
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT au.id, au.first_name
+        FROM user_sessions us
+        JOIN auth_users au ON au.id = us.user_id
+        WHERE us.session_id = %s
+          AND us.expires_at > NOW()
+    """, (session_id,))
+
+    row = cur.fetchone()
+    if not row:
+        return None
+
+    return {
+    "id": row["id"],
+    "first_name": row["first_name"]
+}
     
 def get_history_for_model(conn, session_id, limit=30):
     """
