@@ -720,30 +720,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-def get_recent_messages(conversation_id, limit=12):
-    """
-    Haal de laatste berichten van een gesprek op
-    (oud → nieuw), voor model-context.
-    """
-    conn = get_db_conn()
-    cur = conn.cursor()
-
-    cur.execute(
-        """
-        SELECT role, content
-        FROM messages
-        WHERE conversation_id = %s
-        ORDER BY created_at DESC
-        LIMIT %s
-        """,
-        (conversation_id, limit)
-    )
-
-    rows = cur.fetchall()
-    conn.close()
-    return rows
-
-
 @app.on_event("startup")
 def on_startup():
     # Zorg dat de tabellen bestaan bij het starten van de app

@@ -141,6 +141,40 @@ def save_message(conn, conversation_id: int, role: str, content: str):
 
     conn.commit()
 
+def get_recent_messages(conn, conversation_id: int, limit: int = 12):
+    """
+    Haal de laatste berichten van een gesprek op
+    (oud → nieuw), voor model-context.
+    """
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT role, content
+        FROM messages
+        WHERE conversation_id = %s
+        ORDER BY created_at DESC
+        LIMIT %s
+        """,
+        (conversation_id, limit),
+    )
+
+    rows = cur.fetchall()
+
+    # Oud → nieuw volgorde
+    rows = list(reversed(rows))
+
+    # Normalize output (dict vs tuple)
+    messages = [
+        {
+            "role": r["role"] if isinstance(r, dict) else r[0],
+            "content": r["content"] if isinstance(r, dict) else r[1],
+        }
+        for r in rows
+    ]
+
+    return messages
+
 
 @router.get("/chat")
 def serve_chat_page():
