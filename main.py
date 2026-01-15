@@ -39,7 +39,7 @@ app.include_router(chat_router)
 
 from chat_shared import (
     get_auth_user_from_session,
-    get_history_for_model,
+    get_history_for_model, store_message_pair,
 )
 
 
@@ -1328,22 +1328,7 @@ async def ask(request: Request):
         return {"type": "image", "url": image_url}
 
 
-        image_url = generate_image(question)
-
-        if not image_url:
-            answer = "⚠️ Afbeelding genereren mislukt. Probeer het opnieuw."
-            store_message_pair(session_id, question, answer)
-            return {
-                "type": "error",
-                "answer": answer
-            }
-
-        store_message_pair(session_id, question, f"[IMAGE]{image_url}")
-        return {
-            "type": "image",
-            "url": image_url
-        }
-
+        
     # =============================================================
     # 🔍 SEARCH
     # =============================================================
