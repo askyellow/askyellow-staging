@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from fastapi import FastAPI, Request
 from core.time import TimeContext
+from chat import router as chat_router
 
 app = FastAPI(title="YellowMind API")
 
