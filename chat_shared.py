@@ -194,15 +194,16 @@ def get_history_for_model(conn, session_id, limit=30):
     conv_id = get_or_create_conversation(conn, owner_id)
 
     cur.execute(
-        """
-        SELECT role, content, created_at,
-        FROM messages
-        WHERE conversation_id = %s
-        ORDER BY created_at DESC
-        LIMIT %s
-        """,
-        (conv_id, limit)
-    )
+    """
+    SELECT role, content, created_at
+    FROM messages
+    WHERE conversation_id = %s
+    ORDER BY created_at DESC
+    LIMIT %s
+    """,
+    (conv_id, limit),
+)
+
 
     rows = cur.fetchall()
     rows.reverse()  # 🔥 cruciaal: oud → nieuw voor het model
