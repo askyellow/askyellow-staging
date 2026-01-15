@@ -56,6 +56,91 @@ def get_or_create_user_for_auth(conn, auth_user_id: int, session_id: str):
 
     return row["id"] if isinstance(row, dict) else row[0]
 
+def get_or_create_conversation(conn, owner_id: int):
+    """
+    Haalt de meest recente conversation van deze user op,
+    of maakt er één aan als die nog niet bestaat.
+    """
+    cur = conn.cursor()
+
+    # 1) Bestaat er al een conversation?
+    cur.execute(
+        """
+        SELECT id
+        FROM conversations
+        WHERE user_id = %s
+        ORDER BY started_at DESC
+        LIMIT 1
+        """,
+        (owner_id,),
+    )
+    row = cur.fetchone()
+    if row:
+        return row["id"] if isinstance(row, dict) else row[0]
+
+    # 2) Anders: nieuwe conversation aanmaken
+    cur.execute(
+        """
+        INSERT INTO conversations (user_id)
+        VALUES (%s)
+        RETURNING id
+        """,
+        (owner_id,),
+    )
+    row = cur.fetchone()
+    conn.commit()
+
+    return row["id"] if isinstance(row, dict) else row[0]
+
+def get_or_create_user(conn, session_id: str) -> int:
+    """Zoek user op session_id, maak anders een nieuwe aan."""
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT id FROM users WHERE session_id = %s",
+        (session_id,),
+    )
+    row = cur.fetchone()
+    if row:
+        return row["id"] if isinstance(row, dict) else row[0]
+
+    cur.execute(
+        """
+        INSERT INTO users (session_id)
+        VALUES (%s)
+        RETURNING id
+        """,
+        (session_id,),
+    )
+    row = cur.fetchone()
+    conn.commit()
+
+    return row["id"] if isinstance(row, dict) else row[0]
+
+def save_message(conn, conversation_id: int, role: str, content: str):
+    cur = conn.cursor()
+
+    # Message opslaan
+    cur.execute(
+        """
+        INSERT INTO messages (conversation_id, role, content)
+        VALUES (%s, %s, %s)
+        """,
+        (conversation_id, role, content),
+    )
+
+    # Conversation bijwerken
+    cur.execute(
+        """
+        UPDATE conversations
+        SET last_message_at = NOW()
+        WHERE id = %s
+        """,
+        (conversation_id,),
+    )
+
+    conn.commit()
+
 
 @router.get("/chat")
 def serve_chat_page():
