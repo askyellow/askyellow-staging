@@ -6,7 +6,7 @@ from typing import List, Tuple, Optional
 from chat_engine.db import get_conn
 
 # (optioneel, alleen als je ze gebruikt in de helpers)
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import random
@@ -159,6 +159,63 @@ def get_or_create_user(conn, session_id: str) -> int:
     conn.commit()
 
     return row["id"] if isinstance(row, dict) else row[0]
+
+def get_conversation_history_grouped(conn, owner_id: int):
+    """
+    Geeft conversaties terug gegroepeerd per dag:
+    - today
+    - yesterday
+    - older
+
+    Gebaseerd op Europe/Amsterdam.
+    """
+    cur = conn.cursor()
+
+    # 🗓️ Bepaal vandaag en gisteren (Amsterdam)
+    today = datetime.now(ZoneInfo("Europe/Amsterdam")).date()
+    yesterday = today - timedelta(days=1)
+
+    # 🔍 Haal alle conversaties van deze user op
+    cur.execute(
+        """
+        SELECT id, conversation_date
+        FROM conversations
+        WHERE user_id = %s
+          AND conversation_date IS NOT NULL
+        ORDER BY conversation_date DESC
+        """,
+        (owner_id,),
+    )
+
+    rows = cur.fetchall()
+
+    history = {
+        "today": [],
+        "yesterday": [],
+        "older": []
+    }
+
+    for row in rows:
+        conv_id = row["id"] if isinstance(row, dict) else row[0]
+        conv_date = row["conversation_date"] if isinstance(row, dict) else row[1]
+
+        if conv_date == today:
+            history["today"].append({
+                "conversation_id": conv_id,
+                "conversation_date": str(conv_date)
+            })
+        elif conv_date == yesterday:
+            history["yesterday"].append({
+                "conversation_id": conv_id,
+                "conversation_date": str(conv_date)
+            })
+        else:
+            history["older"].append({
+                "conversation_id": conv_id,
+                "conversation_date": str(conv_date)
+            })
+
+    return history
 
 def save_message(conn, conversation_id: int, role: str, content: str):
     cur = conn.cursor()
