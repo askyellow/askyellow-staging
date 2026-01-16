@@ -9,6 +9,15 @@ from chat_engine.db import get_conn
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import random
+
+WELCOME_MESSAGES = [
+    "Welkom! Dit is een nieuwe chat voor vandaag. Wil je verder in een eerder gesprek? Open die dan via je geschiedenis.",
+    "Goed je weer te zien 😊 Vandaag starten we met een frisse chat. Eerdere gesprekken vind je in het overzicht.",
+    "Nieuwe dag, nieuwe chat ✨ Je eerdere gesprekken blijven bewaard en kun je altijd terugvinden.",
+    "Hoi! Dit gesprek is nieuw voor vandaag. Wil je verder waar je eerder was? Open dan een eerdere chat.",
+]
+
 
 def get_auth_user_from_session(conn, session_id: str):
     cur = conn.cursor()
@@ -58,6 +67,10 @@ def get_or_create_user_for_auth(conn, auth_user_id: int, session_id: str):
 
     return row["id"] if isinstance(row, dict) else row[0]
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+import random
+
 def get_or_create_conversation(conn, owner_id: int):
     """
     Haalt de conversation van VANDAAG (Europe/Amsterdam) op,
@@ -83,7 +96,7 @@ def get_or_create_conversation(conn, owner_id: int):
     if row:
         return row["id"] if isinstance(row, dict) else row[0]
 
-    # ➕ 3) Anders: nieuwe conversation aanmaken
+    # ➕ 3) Nieuwe conversation aanmaken
     cur.execute(
         """
         INSERT INTO conversations (user_id, conversation_date, started_at)
@@ -93,11 +106,21 @@ def get_or_create_conversation(conn, owner_id: int):
         (owner_id, today),
     )
     row = cur.fetchone()
+    conversation_id = row["id"] if isinstance(row, dict) else row[0]
+
+    # 👋 4) Welcome message toevoegen (system)
+    welcome_text = random.choice(WELCOME_MESSAGES)
+    cur.execute(
+        """
+        INSERT INTO messages (conversation_id, role, content)
+        VALUES (%s, %s, %s)
+        """,
+        (conversation_id, "system", welcome_text),
+    )
+
     conn.commit()
+    return conversation_id
 
-    return row["id"] if isinstance(row, dict) else row[0]
-
-    return row["id"] if isinstance(row, dict) else row[0]
 
 def get_or_create_user(conn, session_id: str) -> int:
     """Zoek user op session_id, maak anders een nieuwe aan."""
