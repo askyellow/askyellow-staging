@@ -26,6 +26,42 @@ def serve_chat_page():
     base = os.path.dirname(os.path.abspath(__file__))
     return FileResponse(os.path.join(base, "static/chat/chat.html"))
 
+@router.get("/chat/conversation")
+def chat_get_conversation(conversation_id: int):
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+
+        # alle berichten van deze conversation
+        cur.execute(
+            """
+            SELECT role, content, created_at
+            FROM messages
+            WHERE conversation_id = %s
+            ORDER BY created_at ASC
+            """,
+            (conversation_id,),
+        )
+
+        rows = cur.fetchall() or []
+
+        messages = [
+            {
+                "role": row["role"] if isinstance(row, dict) else row[0],
+                "content": row["content"] if isinstance(row, dict) else row[1],
+                "created_at": row["created_at"] if isinstance(row, dict) else row[2],
+            }
+            for row in rows
+        ]
+
+        return {
+            "conversation_id": conversation_id,
+            "messages": messages,
+        }
+
+    finally:
+        conn.close()
+
 @router.get("/chat/history-list")
 def chat_history_list(session_id: str = Query(...)):
     conn = get_conn()
