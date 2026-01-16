@@ -27,12 +27,32 @@ def serve_chat_page():
     return FileResponse(os.path.join(base, "static/chat/chat.html"))
 
 @router.get("/chat/conversation")
-def chat_get_conversation(conversation_id: int):
+def chat_get_conversation(
+    conversation_id: int,
+    session_id: str = Query(...)
+):
     conn = get_conn()
     try:
+        user = get_user_by_session(conn, session_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
         cur = conn.cursor()
 
-        # alle berichten van deze conversation
+        # 🔐 Check ownership
+        cur.execute(
+            """
+            SELECT id
+            FROM conversations
+            WHERE id = %s AND user_id = %s
+            """,
+            (conversation_id, user["id"]),
+        )
+
+        if not cur.fetchone():
+            raise HTTPException(status_code=403, detail="Forbidden")
+
+        # 📩 Haal berichten op
         cur.execute(
             """
             SELECT role, content, created_at
@@ -45,14 +65,18 @@ def chat_get_conversation(conversation_id: int):
 
         rows = cur.fetchall() or []
 
-        messages = [
-            {
-                "role": row["role"] if isinstance(row, dict) else row[0],
-                "content": row["content"] if isinstance(row, dict) else row[1],
-                "created_at": row["created_at"] if isinstance(row, dict) else row[2],
-            }
-            for row in rows
-        ]
+        messages = []
+        for row in rows:
+            if isinstance(row, dict):
+                role = row["role"]
+                content = row["content"]
+            else:
+                role, content = row[0], row[1]
+
+            messages.append({
+                "role": role,
+                "content": content,
+            })
 
         return {
             "conversation_id": conversation_id,
@@ -61,6 +85,7 @@ def chat_get_conversation(conversation_id: int):
 
     finally:
         conn.close()
+
 
 @router.get("/chat/history-list")
 def chat_history_list(session_id: str = Query(...)):
