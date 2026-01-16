@@ -50,6 +50,30 @@ def get_auth_user_from_session(conn, session_id: str):
     "first_name": row["first_name"]
 }
 
+def get_user_by_session(conn, session_id: str):
+    """
+    Haalt een user op via session_id.
+    Geeft None terug als de session niet bestaat.
+    """
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT id
+        FROM users
+        WHERE session_id = %s
+        LIMIT 1
+        """,
+        (session_id,),
+    )
+    row = cur.fetchone()
+
+    if not row:
+        return None
+
+    return {
+        "id": row["id"] if isinstance(row, dict) else row[0]
+    }
+
 def get_or_create_user_for_auth(conn, auth_user_id: int, session_id: str):
     """
     Zorgt dat een ingelogde user altijd dezelfde 'users'-row krijgt,

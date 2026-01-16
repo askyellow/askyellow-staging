@@ -12,6 +12,7 @@ from chat_shared import (
     save_message,
     get_recent_messages,
     get_history_for_model,
+    get_user_by_session,
     get_conversation_history_grouped,
 )
 
