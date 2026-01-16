@@ -11,12 +11,24 @@ from zoneinfo import ZoneInfo
 
 import random
 
-WELCOME_MESSAGES = [
-    "Welkom! Dit is een nieuwe chat voor vandaag. Wil je verder in een eerder gesprek? Open die dan via je geschiedenis.",
-    "Goed je weer te zien 😊 Vandaag starten we met een frisse chat. Eerdere gesprekken vind je in het overzicht.",
-    "Nieuwe dag, nieuwe chat ✨ Je eerdere gesprekken blijven bewaard en kun je altijd terugvinden.",
-    "Hoi! Dit gesprek is nieuw voor vandaag. Wil je verder waar je eerder was? Open dan een eerdere chat.",
-]
+
+def build_welcome_message(first_name: str | None) -> str:
+    if first_name:
+        return random.choice([
+            f"Welkom {first_name}! Dit is een nieuwe chat voor vandaag. Wil je verder in een eerder gesprek? Open die dan via je geschiedenis.",
+            f"Goed je weer te zien, {first_name} 😊 Vandaag starten we met een frisse chat.",
+            f"Nieuwe dag, nieuwe chat {first_name} ✨ Je eerdere gesprekken blijven bewaard.",
+            f"Hoi {first_name}! Dit gesprek is nieuw voor vandaag. Wil je verder waar je eerder was? Open dan een eerdere chat.",
+
+        ])
+    else:
+        return random.choice([
+            "Welkom! Dit is een nieuwe chat voor vandaag. Wil je verder in een eerder gesprek? Open die dan via je geschiedenis.",
+            "Goed je weer te zien 😊 Vandaag starten we met een frisse chat.",
+            "Nieuwe dag, nieuwe chat ✨ Je eerdere gesprekken blijven bewaard.",
+            "Hoi! Dit gesprek is nieuw voor vandaag. Wil je verder waar je eerder was? Open dan een eerdere chat.",
+
+        ])
 
 
 def get_auth_user_from_session(conn, session_id: str):
@@ -71,7 +83,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 import random
 
-def get_or_create_conversation(conn, owner_id: int):
+def get_or_create_conversation(conn, owner_id: int, first_name: str | None = None):
     """
     Haalt de conversation van VANDAAG (Europe/Amsterdam) op,
     of maakt er één aan als die nog niet bestaat.
@@ -109,14 +121,15 @@ def get_or_create_conversation(conn, owner_id: int):
     conversation_id = row["id"] if isinstance(row, dict) else row[0]
 
     # 👋 4) Welcome message toevoegen (system)
-    welcome_text = random.choice(WELCOME_MESSAGES)
+    welcome_text = build_welcome_message(first_name)
     cur.execute(
-        """
-        INSERT INTO messages (conversation_id, role, content)
-        VALUES (%s, %s, %s)
-        """,
-        (conversation_id, "system", welcome_text),
+    """
+    INSERT INTO messages (conversation_id, role, content)
+    VALUES (%s, %s, %s)
+    """,
+    (conversation_id, "system", welcome_text),
     )
+
 
     conn.commit()
     return conversation_id
