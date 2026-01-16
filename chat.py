@@ -14,6 +14,7 @@ from chat_shared import (
     get_history_for_model,
     get_user_by_session,
     get_conversation_history_grouped,
+    get_today_conversation_id,
 )
 
 
