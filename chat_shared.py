@@ -7,6 +7,7 @@ from chat_engine.db import get_conn
 
 # (optioneel, alleen als je ze gebruikt in de helpers)
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 
 def get_auth_user_from_session(conn, session_id: str):
@@ -59,37 +60,42 @@ def get_or_create_user_for_auth(conn, auth_user_id: int, session_id: str):
 
 def get_or_create_conversation(conn, owner_id: int):
     """
-    Haalt de meest recente conversation van deze user op,
+    Haalt de conversation van VANDAAG (Europe/Amsterdam) op,
     of maakt er één aan als die nog niet bestaat.
     """
     cur = conn.cursor()
 
-    # 1) Bestaat er al een conversation?
+    # 🗓️ 1) Bepaal vandaag (Europe/Amsterdam)
+    today = datetime.now(ZoneInfo("Europe/Amsterdam")).date()
+
+    # 🔍 2) Bestaat er al een conversation voor vandaag?
     cur.execute(
         """
         SELECT id
         FROM conversations
         WHERE user_id = %s
-        ORDER BY started_at DESC
+          AND conversation_date = %s
         LIMIT 1
         """,
-        (owner_id,),
+        (owner_id, today),
     )
     row = cur.fetchone()
     if row:
         return row["id"] if isinstance(row, dict) else row[0]
 
-    # 2) Anders: nieuwe conversation aanmaken
+    # ➕ 3) Anders: nieuwe conversation aanmaken
     cur.execute(
         """
-        INSERT INTO conversations (user_id)
-        VALUES (%s)
+        INSERT INTO conversations (user_id, conversation_date, started_at)
+        VALUES (%s, %s, NOW())
         RETURNING id
         """,
-        (owner_id,),
+        (owner_id, today),
     )
     row = cur.fetchone()
     conn.commit()
+
+    return row["id"] if isinstance(row, dict) else row[0]
 
     return row["id"] if isinstance(row, dict) else row[0]
 
@@ -190,9 +196,7 @@ def get_history_for_model(conn, session_id, limit=30):
         if auth_user
         else get_or_create_user(conn, session_id)
     )
-
     conv_id = get_or_create_conversation(conn, owner_id)
-
     cur.execute(
     """
     SELECT role, content, created_at
@@ -203,11 +207,8 @@ def get_history_for_model(conn, session_id, limit=30):
     """,
     (conv_id, limit),
 )
-
-
     rows = cur.fetchall()
     rows.reverse()  # 🔥 cruciaal: oud → nieuw voor het model
-
     return conv_id, rows
 
     
