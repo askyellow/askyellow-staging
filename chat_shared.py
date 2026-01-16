@@ -79,10 +79,6 @@ def get_or_create_user_for_auth(conn, auth_user_id: int, session_id: str):
 
     return row["id"] if isinstance(row, dict) else row[0]
 
-from datetime import datetime
-from zoneinfo import ZoneInfo
-import random
-
 def get_or_create_conversation(conn, owner_id: int, first_name: str | None = None):
     """
     Haalt de conversation van VANDAAG (Europe/Amsterdam) op,
