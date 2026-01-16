@@ -103,6 +103,28 @@ def get_or_create_user_for_auth(conn, auth_user_id: int, session_id: str):
 
     return row["id"] if isinstance(row, dict) else row[0]
 
+def get_today_conversation_id(conn, owner_id: int):
+    """
+    Haalt de conversation_id van vandaag op (read-only).
+    Geeft None terug als die nog niet bestaat.
+    """
+    cur = conn.cursor()
+    today = datetime.now(ZoneInfo("Europe/Amsterdam")).date()
+
+    cur.execute(
+        """
+        SELECT id
+        FROM conversations
+        WHERE user_id = %s
+          AND conversation_date = %s
+        LIMIT 1
+        """,
+        (owner_id, today),
+    )
+    row = cur.fetchone()
+    return row["id"] if row else None
+
+
 def get_or_create_conversation(conn, owner_id: int, first_name: str | None = None):
     """
     Haalt de conversation van VANDAAG (Europe/Amsterdam) op,
