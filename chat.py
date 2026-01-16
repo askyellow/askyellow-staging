@@ -12,6 +12,8 @@ from chat_shared import (
     save_message,
     get_recent_messages,
     get_history_for_model,
+    get_user_by_session,
+    get_conversation_history_grouped,
 )
 
 
@@ -24,6 +26,19 @@ def serve_chat_page():
     base = os.path.dirname(os.path.abspath(__file__))
     return FileResponse(os.path.join(base, "static/chat/chat.html"))
 
+@router.get("/chat/history-list")
+def chat_history_list(session_id: str = Query(...)):
+    conn = get_conn()
+    try:
+        user = get_user_by_session(conn, session_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        history = get_conversation_history_grouped(conn, user["id"])
+        return history
+
+    finally:
+        conn.close()
 
 @router.get("/chat/history")
 async def chat_history(session_id: str):
