@@ -87,6 +87,7 @@ def chat_get_conversation(
         conn.close()
 
 
+
 @router.get("/chat/history-list")
 def chat_history_list(session_id: str = Query(...)):
     conn = get_conn()
@@ -108,14 +109,17 @@ async def chat_history(session_id: str):
 
     auth_user = get_auth_user_from_session(conn, session_id)
 
-    auth_user = get_auth_user_from_session(conn, session_id)
-
     if auth_user:
         owner_id = get_or_create_user_for_auth(conn, auth_user["id"], session_id)
-        conv_id = get_or_create_conversation(conn, owner_id, auth_user["first_name"])
     else:
         owner_id = get_or_create_user(conn, session_id)
-        conv_id = get_or_create_conversation(conn, owner_id)
+
+    # ❗ READ-ONLY: GEEN create
+    conv_id = get_today_conversation_id(conn, owner_id)
+
+    if not conv_id:
+        conn.close()
+        return {"messages": []}
 
     cur.execute(
         """
@@ -124,7 +128,7 @@ async def chat_history(session_id: str):
         WHERE conversation_id = %s
         ORDER BY created_at ASC
         """,
-        (conv_id,)
+        (conv_id,),
     )
 
     rows = cur.fetchall()
@@ -136,6 +140,7 @@ async def chat_history(session_id: str):
             for r in rows
         ]
     }
+
 
 @router.post("/chat")
 async def chat(payload: dict):
