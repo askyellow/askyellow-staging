@@ -9,7 +9,7 @@ from chat_shared import (
     get_history_for_model,
     store_message_pair,
 )
-from yellowmind.llm import call_yellowmind_llm
+from llm import call_yellowmind_llm
 
 
 router = APIRouter()
