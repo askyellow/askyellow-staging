@@ -1,5 +1,4 @@
 from openai import OpenAI
-from system_prompt import SYSTEM_PROMPT
 import os
 
 # 🔹 OpenAI client (zelfde als main.py)
@@ -11,7 +10,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 # 🔹 SYSTEM PROMPT importeren
 # dit MOET dezelfde zijn als in main.py
-from main import SYSTEM_PROMPT
+from system_prompt import SYSTEM_PROMPT
 
 
 # =============================================================
