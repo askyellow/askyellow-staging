@@ -759,10 +759,6 @@ async def login(payload: dict):
     if not user or not verify_password(password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    # nieuwe sessie
-    session_id = str(uuid.uuid4())
-    expires_at = datetime.utcnow() + timedelta(days=7)
-
     cur.execute(
         """
         INSERT INTO user_sessions (session_id, user_id, expires_at)
@@ -795,11 +791,16 @@ async def register(payload: dict):
     first_name = (payload.get("first_name") or "").strip()
     last_name = (payload.get("last_name") or "").strip()
 
+    
     if not email or not password or not first_name or not last_name:
         raise HTTPException(status_code=400, detail="Alle velden zijn verplicht")
 
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Wachtwoord te kort")
+    
+    session_id = payload.get("session_id")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id ontbreekt")
 
     conn = get_db_conn()
     cur = conn.cursor()
@@ -809,6 +810,10 @@ async def register(payload: dict):
     if cur.fetchone():
         conn.close()
         raise HTTPException(status_code=409, detail="Email bestaat al")
+
+    session_id = payload.get("session_id")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id ontbreekt")
 
     safe_password = normalize_password(password)
     password_hash = pwd_context.hash(safe_password)
@@ -827,16 +832,21 @@ async def register(payload: dict):
     user_id = cur.fetchone()["id"]
 
     # auto-login sessie
-    session_id = str(uuid.uuid4())
     expires_at = datetime.utcnow() + timedelta(days=7)
 
     cur.execute(
         """
         INSERT INTO user_sessions (session_id, user_id, expires_at)
         VALUES (%s, %s, %s)
+        ON CONFLICT (session_id)
+        DO UPDATE SET
+            user_id = EXCLUDED.user_id,
+            expires_at = EXCLUDED.expires_at
         """,
-        (session_id, user_id, expires_at)
-    )
+    (session_id, user_id, expires_at)
+)
+
+
 
     conn.commit()
     conn.close()
