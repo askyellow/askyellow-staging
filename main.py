@@ -337,7 +337,14 @@ async def web_search(payload: dict):
     }
 
 
-
+def load_file(path: str) -> str:
+    full_path = os.path.join(BASE_DIR, path)
+    try:
+        with open(full_path, "r", encoding="utf-8") as f:
+            return "\n" + f.read().strip() + "\n"
+    except FileNotFoundError:
+        print(f"⚠️ Yellowmind config file niet gevonden: {full_path}")
+        return ""
 # =============================================================
 # 3. TOOL ENDPOINTS (WEBSEARCH / SHOPIFY / KNOWLEDGE / IMAGE)
 # =============================================================

@@ -6,14 +6,7 @@ from pathlib import Path
 # 3. HELPERS: LOAD FILES & PROMPT
 # =============================================================
 
-def load_file(path: str) -> str:
-    full_path = os.path.join(BASE_DIR, path)
-    try:
-        with open(full_path, "r", encoding="utf-8") as f:
-            return "\n" + f.read().strip() + "\n"
-    except FileNotFoundError:
-        print(f"⚠️ Yellowmind config file niet gevonden: {full_path}")
-        return ""
+
 
 def build_system_prompt() -> str:
     base = "yellowmind/"
