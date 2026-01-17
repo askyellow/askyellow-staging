@@ -9,6 +9,7 @@ from chat_shared import (
     get_history_for_model,
     store_message_pair,
 )
+from yellowmind.llm import call_yellowmind_llm
 
 
 router = APIRouter()
@@ -152,6 +153,8 @@ def chat_history(session_id: str):
 #     }
 
 # nieuwe route ipv hier onderstaande 
+from yellowmind.llm import call_yellowmind_llm
+
 @router.post("/chat")
 def chat(payload: dict):
     session_id = payload.get("session_id")
@@ -165,29 +168,27 @@ def chat(payload: dict):
     _, history = get_history_for_model(conn, session_id)
     conn.close()
 
-    # 2️⃣ Bouw LLM payload (jouw bestaande logica kan hier blijven)
-    messages_for_model = []
-    for msg in history:
-        messages_for_model.append({
-            "role": msg["role"],
-            "content": msg["content"]
-        })
+    # 2️⃣ Hints (nu leeg, later uitbreidbaar)
+    hints = {}
 
-    messages_for_model.append({
-        "role": "user",
-        "content": message
-    })
-
-    # 🔁 gebruik hier jouw bestaande AI-call
-    answer = call_yellowmind_llm_somewhere(messages_for_model)
+    # 3️⃣ LLM call
+    answer, _ = call_yellowmind_llm(
+        question=message,
+        language="nl",
+        kb_answer=None,
+        sql_match=None,
+        hints=hints,
+        history=history
+    )
 
     if not answer:
         answer = "⚠️ Ik kreeg geen inhoudelijk antwoord terug."
 
-    # 3️⃣ Opslaan (create gebeurt hier)
+    # 4️⃣ Opslaan (create gebeurt hier)
     store_message_pair(session_id, message, answer)
 
     return {"reply": answer}
+
 
 
 # @router.post("/chat")

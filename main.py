@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request
 from core.time import TimeContext
 from chat import router as chat_router
 from core.time_context import build_time_context
+from yellowmind.llm import call_yellowmind_llm
 
 app = FastAPI(title="YellowMind API")
 
@@ -1133,106 +1134,6 @@ def wants_image(q: str) -> bool:
     ]
     return any(t in q.lower() for t in triggers)
 
-
-# =============================================================
-# 6. OPENAI CALL — FIXED FOR o3 RESPONSE FORMAT (SAFE)
-# =============================================================
-
-def call_yellowmind_llm(
-    question,
-    language,
-    kb_answer,
-    sql_match,
-    hints,
-    history=None
-):
-   
-    messages = [
-        {
-            "role": "system",
-            "content": SYSTEM_PROMPT
-        }
-    ]
-    if hints and hints.get("time_context"):
-        messages.append({
-            "role": "system",
-            "content": hints["time_context"]
-        })
-
-    if hints and hints.get("web_context"):
-        messages.append({
-            "role": "system",
-            "content": hints["web_context"]
-        })
-# Conversatiegeschiedenis (LLM-context)
-    if history:
-        for msg in history:
-            content = msg.get("content")
-
-            # 🚫 alleen strings
-            if not isinstance(content, str):
-                continue
-
-            # 🚫 images nooit naar het model
-            if content.startswith("[IMAGE]"):
-                continue
-
-            messages.append({
-                "role": msg.get("role", "user"),
-                "content": content[:2000]  # harde safety cap
-        })
-
-    
-
-    # 🔹 User vraag
-    messages.append({
-        "role": "user",
-        "content": question
-    })
-
-    print("=== PAYLOAD TO MODEL ===")
-    for i, m in enumerate(messages):
-        print(i, m["role"], m["content"][:80])
-    print("========================")
-
-    import json
-
-    print("🔴 MESSAGE COUNT:", len(messages))
-    print("🔴 FIRST MESSAGE:", messages[0])
-    print("🔴 LAST MESSAGE:", messages[-1])
-    print("🔴 RAW SIZE:", len(json.dumps(messages)))
-
-    for i, m in enumerate(messages):
-        size = len(m.get("content", ""))
-        if size > 5000:
-            print(f"🚨 MESSAGE {i} ROLE={m['role']} SIZE={size}")
-
-    print("MAX MESSAGE SIZE:", max(len(m["content"]) for m in messages))
-
-
-    ai = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=messages
-    )
-
-    final_answer = ai.choices[0].message.content
-
-    # 🔒 Airbag: verboden zinnen filteren
-    BANNED_PHRASES = [
-        "Ik kan dit niet want ik ben een AI"
-    ]
-
-    lower_answer = final_answer.lower()
-
-    for phrase in BANNED_PHRASES:
-        if phrase in lower_answer:
-            final_answer = (
-                "Ik kan je hiervoor niet direct een antwoord geven. "
-                "Kun je de laatste vraag anders formuleren?"
-            )
-            break
-
-    return final_answer, []
 
 
 
