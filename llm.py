@@ -1,4 +1,5 @@
 from openai import OpenAI
+from system_prompt import SYSTEM_PROMPT
 import os
 
 # 🔹 OpenAI client (zelfde als main.py)
