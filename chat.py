@@ -153,7 +153,6 @@ def chat_history(session_id: str):
 #     }
 
 # nieuwe route ipv hier onderstaande 
-from yellowmind.llm import call_yellowmind_llm
 
 @router.post("/chat")
 def chat(payload: dict):
