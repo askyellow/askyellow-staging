@@ -803,6 +803,22 @@ async def login(payload: dict):
         "first_name": user["first_name"]
     }
 
+@app.post("/auth/logout")
+async def logout(payload: dict):
+    session_id = payload.get("session_id")
+    if not session_id:
+        raise HTTPException(status_code=400)
+
+    conn = get_db_conn()
+    cur = conn.cursor()
+    cur.execute(
+        "DELETE FROM user_sessions WHERE session_id = %s",
+        (session_id,)
+    )
+    conn.commit()
+    conn.close()
+
+    return {"ok": True}
 
 
 @app.post("/auth/register")
