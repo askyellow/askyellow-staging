@@ -752,9 +752,13 @@ def verify_password(plain_password, hashed_password):
 async def login(payload: dict):
     email = (payload.get("email") or "").lower().strip()
     password = payload.get("password") or ""
+    session_id = payload.get("session_id")
 
-    if not email or not password:
-        raise HTTPException(status_code=400, detail="Email en wachtwoord verplicht")
+    if not email or not password or not session_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Email, wachtwoord en session_id verplicht"
+        )
 
     conn = get_db_conn()
     cur = conn.cursor()
@@ -769,14 +773,22 @@ async def login(payload: dict):
     if not user or not verify_password(password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
+    # session verrijken (NIET vervangen)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+
     cur.execute(
         """
         INSERT INTO user_sessions (session_id, user_id, expires_at)
         VALUES (%s, %s, %s)
+        ON CONFLICT (session_id)
+        DO UPDATE SET
+            user_id = EXCLUDED.user_id,
+            expires_at = EXCLUDED.expires_at
         """,
         (session_id, user["id"], expires_at)
     )
 
+    # last_login bijwerken
     cur.execute(
         "UPDATE auth_users SET last_login = NOW() WHERE id = %s",
         (user["id"],)
@@ -787,10 +799,10 @@ async def login(payload: dict):
 
     return {
         "success": True,
-        "session": session_id,
+        "session_id": session_id,
+        "user_id": user["id"],
         "first_name": user["first_name"]
     }
-
 
 
 
