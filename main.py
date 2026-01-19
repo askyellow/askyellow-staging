@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, JSONResponse
 from dotenv import load_dotenv
 from openai import OpenAI
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from core.time import TimeContext
 from chat import router as chat_router
 from core.time_context import build_time_context
@@ -20,7 +20,7 @@ import unicodedata
 import re
 import secrets
 import resend
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import uuid
 import traceback
 
@@ -34,7 +34,6 @@ from psycopg2.extras import RealDictCursor
 from fastapi import APIRouter, Request
 from passlib.context import CryptContext
 
-from passlib.context import CryptContext
 
 from routes.health import router as health_router
 app.include_router(health_router, include_in_schema=False)
