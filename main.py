@@ -746,6 +746,8 @@ def on_startup():
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
+from datetime import datetime, timedelta, timezone
+from fastapi import HTTPException
 
 @app.post("/auth/login")
 async def login(payload: dict):
@@ -772,7 +774,19 @@ async def login(payload: dict):
     if not user or not verify_password(password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    # session verrijken (NIET vervangen)
+    # ✅ PRE-CHECK: bestaat session_id al en hoort die bij iemand anders?
+    cur.execute(
+        "SELECT user_id FROM user_sessions WHERE session_id = %s",
+        (session_id,)
+    )
+    existing = cur.fetchone()
+    if existing and existing["user_id"] != user["id"]:
+        conn.close()
+        raise HTTPException(
+            status_code=409,
+            detail="session_id is al gekoppeld aan een andere user (mogelijk frontend bug of session reuse)"
+        )
+
     expires_at = datetime.now(timezone.utc) + timedelta(days=30)
 
     cur.execute(
@@ -787,7 +801,6 @@ async def login(payload: dict):
         (session_id, user["id"], expires_at)
     )
 
-    # last_login bijwerken
     cur.execute(
         "UPDATE auth_users SET last_login = NOW() WHERE id = %s",
         (user["id"],)
@@ -802,6 +815,64 @@ async def login(payload: dict):
         "user_id": user["id"],
         "first_name": user["first_name"]
     }
+
+
+# Als bovenstaande niet werkt, deze weer terug:
+# @app.post("/auth/login")
+# async def login(payload: dict):
+#     email = (payload.get("email") or "").lower().strip()
+#     password = payload.get("password") or ""
+#     session_id = payload.get("session_id")
+
+#     if not email or not password or not session_id:
+#         raise HTTPException(
+#             status_code=400,
+#             detail="Email, wachtwoord en session_id verplicht"
+#         )
+
+#     conn = get_db_conn()
+#     cur = conn.cursor()
+
+#     # gebruiker ophalen
+#     cur.execute(
+#         "SELECT id, password_hash, first_name FROM auth_users WHERE email = %s",
+#         (email,)
+#     )
+#     user = cur.fetchone()
+
+#     if not user or not verify_password(password, user["password_hash"]):
+#         raise HTTPException(status_code=401, detail="Invalid credentials")
+
+#     # session verrijken (NIET vervangen)
+#     expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+
+#     cur.execute(
+#         """
+#         INSERT INTO user_sessions (session_id, user_id, expires_at)
+#         VALUES (%s, %s, %s)
+#         ON CONFLICT (session_id)
+#         DO UPDATE SET
+#             user_id = EXCLUDED.user_id,
+#             expires_at = EXCLUDED.expires_at
+#         """,
+#         (session_id, user["id"], expires_at)
+#     )
+
+#     # last_login bijwerken
+#     cur.execute(
+#         "UPDATE auth_users SET last_login = NOW() WHERE id = %s",
+#         (user["id"],)
+#     )
+
+#     conn.commit()
+#     conn.close()
+
+#     return {
+#         "success": True,
+#         "session_id": session_id,
+#         "user_id": user["id"],
+#         "first_name": user["first_name"]
+#     }
 
 @app.post("/auth/logout")
 async def logout(payload: dict):
