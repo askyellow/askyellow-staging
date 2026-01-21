@@ -83,6 +83,50 @@ def create_new_conversation(conn, session_id: str) -> int:
     conn.commit()
     return conv_id
 
+# aanmaken of ophalen dagelijkse converstatie
+def get_or_create_daily_conversation(conn, user_id: int) -> int:
+    """
+    Zorgt dat een user exact 1 conversation per dag heeft.
+    """
+    today = datetime.now(timezone.utc).date()
+
+    cur = conn.cursor()
+
+    # 1. Bestaat er al een conversation voor deze user + vandaag?
+    cur.execute(
+        """
+        SELECT id
+        FROM conversations
+        WHERE user_id = %s
+          AND conversation_date = %s
+          AND ended_at IS NULL
+        LIMIT 1
+        """,
+        (user_id, today)
+    )
+
+    row = cur.fetchone()
+    if row:
+        return row["id"]
+
+    # 2. Zo niet → nieuwe conversation maken
+    cur.execute(
+        """
+        INSERT INTO conversations (
+            user_id,
+            conversation_date,
+            started_at,
+            last_message_at
+        )
+        VALUES (%s, %s, NOW(), NOW())
+        RETURNING id
+        """,
+        (user_id, today)
+    )
+
+    conv_id = cur.fetchone()["id"]
+    conn.commit()
+    return conv_id
 
 # haalt bestaande history op READ ONLY    
 from datetime import datetime, timedelta, timezone
@@ -130,19 +174,44 @@ def get_history_for_model(conn, session_id: str, day: str | None = None, limit=3
 def store_message_pair(session_id, user_text, assistant_text):
     conn = get_conn()
     try:
-        conv_id = get_active_conversation(conn, session_id)
-        if not conv_id:
-            conv_id = create_new_conversation(conn, session_id)
+        user = get_auth_user_from_session(conn, session_id)
+
+        if user:
+            conv_id = get_or_create_daily_conversation(conn, user["id"])
+        else:
+            # guest → oud gedrag
+            conv_id = get_active_conversation(conn, session_id)
+            if not conv_id:
+                conv_id = create_new_conversation(conn, session_id)
 
         cur = conn.cursor()
+
         cur.execute(
-            "INSERT INTO messages (conversation_id, role, content) VALUES (%s, %s, %s)",
+            """
+            INSERT INTO messages (conversation_id, role, content)
+            VALUES (%s, %s, %s)
+            """,
             (conv_id, "user", user_text)
         )
+
         cur.execute(
-            "INSERT INTO messages (conversation_id, role, content) VALUES (%s, %s, %s)",
+            """
+            INSERT INTO messages (conversation_id, role, content)
+            VALUES (%s, %s, %s)
+            """,
             (conv_id, "assistant", assistant_text)
         )
+
+        # last_message_at bijwerken
+        cur.execute(
+            """
+            UPDATE conversations
+            SET last_message_at = NOW()
+            WHERE id = %s
+            """,
+            (conv_id,)
+        )
+
         conn.commit()
     finally:
         conn.close()
