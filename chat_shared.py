@@ -83,6 +83,47 @@ def create_new_conversation(conn, session_id: str) -> int:
     conn.commit()
     return conv_id
 
+#Haalt history op voor ingelogde users op basis van conversation_date.
+
+def get_user_history(conn, user_id: int, day: str | None = None, limit=50):
+    """
+    Haalt history op voor ingelogde users op basis van conversation_date.
+    day = None | 'today' | 'yesterday'
+    """
+    cur = conn.cursor()
+
+    today = datetime.now(timezone.utc).date()
+
+    if day == "today":
+        date_filter = "conversation_date = %s"
+        params = [user_id, today]
+
+    elif day == "yesterday":
+        date_filter = "conversation_date = %s"
+        params = [user_id, today - timedelta(days=1)]
+
+    else:
+        date_filter = "1=1"
+        params = [user_id]
+
+    cur.execute(
+        f"""
+        SELECT c.id AS conversation_id,
+               m.role,
+               m.content,
+               m.created_at
+        FROM conversations c
+        JOIN messages m ON m.conversation_id = c.id
+        WHERE c.user_id = %s
+          AND {date_filter}
+        ORDER BY m.created_at ASC
+        LIMIT %s
+        """,
+        (*params, limit)
+    )
+
+    return cur.fetchall()
+
 # aanmaken of ophalen dagelijkse converstatie
 def get_or_create_daily_conversation(conn, user_id: int) -> int:
     """

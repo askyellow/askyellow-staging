@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Request, HTTPException, Depends, Query
 from fastapi.responses import FileResponse
+from datetime import datetime, timedelta, timezone
+
 import os
 #from core.time_context import build_time_context, greeting
 from chat_engine.db import get_conn
@@ -18,15 +20,26 @@ router = APIRouter()
 def chat_history(session_id: str, day: str | None = None):
     conn = get_conn()
     try:
-        _, history = get_history_for_model(conn, session_id)
+        user = get_auth_user_from_session(conn, session_id)
+
+        if user:
+            rows = get_user_history(conn, user["id"], day)
+        else:
+            _, rows = get_history_for_model(conn, session_id, day)
+
         return {
             "messages": [
-                {"role": r["role"], "content": r["content"]}
-                for r in history
+                {
+                    "role": r["role"],
+                    "content": r["content"],
+                    "created_at": r["created_at"]
+                }
+                for r in rows
             ]
         }
     finally:
         conn.close()
+
 
 @router.post("/chat")
 def chat(payload: dict):
