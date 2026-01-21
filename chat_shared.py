@@ -170,7 +170,6 @@ def get_or_create_daily_conversation(conn, user_id: int) -> int:
     return conv_id
 
 # haalt bestaande history op READ ONLY    
-from datetime import datetime, timedelta, timezone
 
 def get_history_for_model(conn, session_id: str, day: str | None = None, limit=30):
     conv_id = get_active_conversation(conn, session_id)

@@ -10,6 +10,9 @@ from chat_shared import (
     create_new_conversation,
     get_history_for_model,
     store_message_pair,
+    get_user_history,
+    get_or_create_daily_conversation,
+    get_history_for_model,
 )
 from llm import call_yellowmind_llm
 
