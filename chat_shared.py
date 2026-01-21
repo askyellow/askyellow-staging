@@ -6,7 +6,7 @@ from typing import List, Tuple, Optional
 from chat_engine.db import get_conn
 
 # (optioneel, alleen als je ze gebruikt in de helpers)
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import random
@@ -255,3 +255,4 @@ def store_message_pair(session_id, user_text, assistant_text):
         conn.commit()
     finally:
         conn.close()
+
