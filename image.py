@@ -1,8 +1,8 @@
 from fastapi import APIRouter
-from app.image_shared import (
+from image_shared import (
     wants_image,
     generate_image,
-    etect_intent,
+    detect_intent,
     require_auth_session,
     handle_image_intent,
     )
