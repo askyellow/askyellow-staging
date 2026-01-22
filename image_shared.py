@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request, HTTPException
 from openai import OpenAI
+from chat_shared import store_message_pair
 import os
 import re
 
