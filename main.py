@@ -45,13 +45,7 @@ app.include_router(health_router, include_in_schema=False)
 app.include_router(chat_router)
 app.include_router(image_generate)
 
-
-
 time_context = build_time_context()
-
-
-
-
 
 pwd_context = CryptContext(
     schemes=["bcrypt_sha256", "scrypt"],
@@ -1098,6 +1092,15 @@ async def ask(request: Request):
 
     intent = detect_intent(question)
 
+    # 🕒 TIJDVRAGEN — DIRECT NA INTENT
+    TIME_KEYWORDS = [
+        "vandaag",
+        "welke dag is het",
+        "wat voor dag is het",
+        "laatste jaarwisseling",
+        "afgelopen jaarwisseling",
+    ]
+
     is_time_question = any(k in question.lower() for k in TIME_KEYWORDS)
 
     if is_time_question:
@@ -1108,14 +1111,7 @@ async def ask(request: Request):
             "answer": answer
         }
 
-    # 🕒 TIJDVRAGEN — DIRECT NA INTENT
-    TIME_KEYWORDS = [
-        "vandaag",
-        "welke dag is het",
-        "wat voor dag is het",
-        "laatste jaarwisseling",
-        "afgelopen jaarwisseling",
-    ]
+    
 
     
     # =============================================================
