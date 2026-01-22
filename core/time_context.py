@@ -18,5 +18,16 @@ def day_part() -> str:
         return "goedemiddag"
     else:
         return "goedenavond"
+
 def greeting() -> str:
     return day_part().capitalize()
+
+def build_llm_time_hint() -> str:
+    now = datetime.now(ZoneInfo("Europe/Amsterdam"))
+    if now.hour < 12:
+        return "Het is ochtend."
+    elif now.hour < 18:
+        return "Het is middag."
+    else:
+        return "Het is avond."
+
