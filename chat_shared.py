@@ -8,6 +8,7 @@ from chat_engine.db import get_conn
 # (optioneel, alleen als je ze gebruikt in de helpers)
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
+from core.time_context import get_logical_date
 
 import random
 
@@ -129,7 +130,7 @@ def get_or_create_daily_conversation(conn, user_id: int) -> int:
     """
     Zorgt dat een user exact 1 conversation per dag heeft.
     """
-    today = datetime.now(timezone.utc).date()
+    today = get_logical_date()
 
     cur = conn.cursor()
 
@@ -255,4 +256,3 @@ def store_message_pair(session_id, user_text, assistant_text):
         conn.commit()
     finally:
         conn.close()
-
