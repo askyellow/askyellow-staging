@@ -1,3 +1,12 @@
+from fastapi import Request, HTTPException
+from openai import OpenAI
+import os
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+router = APIRouter()
+
+
 # =============================================================
 # IMAGE INTENT DETECTION
 # =============================================================
@@ -61,11 +70,11 @@ def require_auth_session(request: Request):
         )
 
     
-    if not user:
-        raise HTTPException(
-            status_code=403,
-            detail="Ongeldige of verlopen sessie"
-        )
+    # if not user:
+    #     raise HTTPException(
+    #         status_code=403,
+    #         detail="Ongeldige of verlopen sessie"
+    #     )
     
     # image_shared.py
 
