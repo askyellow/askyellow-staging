@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request, HTTPException
 from image_shared import (
     wants_image,
     generate_image,
