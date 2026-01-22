@@ -51,6 +51,12 @@ def call_yellowmind_llm(
             "content": hints["time_context"]
         })
 
+    if hints.get("time_hint"):
+        messages.append({
+        "role": "system",
+        "content": hints["time_hint"]
+    })
+
     if hints and hints.get("web_context"):
         messages.append({
             "role": "system",

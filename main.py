@@ -1150,7 +1150,10 @@ async def ask(request: Request):
     hints = {
        "time_context": time_context,
         "web_context": web_context
-}
+    }
+    
+    hints["time_hint"] = build_llm_time_hint()
+
     if user and user.get("first_name"):
         hints["user_name"] = user["first_name"]
 
