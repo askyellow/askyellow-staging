@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from fastapi import FastAPI, Request, HTTPException
 from core.time import TimeContext
-from chat import router as chat_router
 from core.time_context import build_time_context
 from llm import call_yellowmind_llm
 from system_prompt import SYSTEM_PROMPT
+from chat import router as chat_router
 
 
 app = FastAPI(title="YellowMind API")
@@ -43,6 +43,8 @@ from chat_shared import (
     get_auth_user_from_session,
     get_history_for_model, store_message_pair,
 )
+
+time_context = build_time_context()
 
 
 
@@ -1302,8 +1304,6 @@ async def ask(request: Request):
 
     web_results = run_websearch_internal(question)
     web_context = build_web_context(web_results)
-
-    time_context = build_time_context()
 
     hints = {
        "time_context": time_context,
