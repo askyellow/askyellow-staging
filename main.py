@@ -33,6 +33,8 @@ from psycopg2.extras import RealDictCursor
 
 from fastapi import APIRouter, Request
 from passlib.context import CryptContext
+from image import router as image_router
+app.include_router(image_router)
 
 
 from routes.health import router as health_router
@@ -580,67 +582,6 @@ async def tool_knowledge_search(payload: dict):
         "query": query,
         "answer": kb_answer,
     }
-
-
-# ---- Image Generation Tool ----
-
-# ===== IMAGE GENERATION AUTH CHECK =====
-def require_auth_session(request: Request):
-    # 👇 PRE-FLIGHT ALTIJD TOESTAAN
-    if request.method == "OPTIONS":
-        return
-
-    session_id = request.headers.get("X-Session-Id") or ""
-    if not session_id:
-        raise HTTPException(
-            status_code=403,
-            detail="Login vereist voor image generation"
-        )
-
-    
-    if not user:
-        raise HTTPException(
-            status_code=403,
-            detail="Ongeldige of verlopen sessie"
-        )
-
-
-@app.post("/tool/image_generate")
-async def tool_image_generate(request: Request, payload: dict):
-    require_auth_session(request)
-
-    """Genereert een afbeelding via OpenAI gpt-image-1 model."""
-    prompt = (payload.get("prompt") or "").strip()
-    if not prompt:
-        raise HTTPException(status_code=400, detail="Missing prompt")
-
-    try:
-        result = client.images.generate(
-            model="gpt-image-1",
-            prompt=prompt,
-            size="1024x1024",
-        )
-        url = result.data[0].url
-    except Exception as e:
-        print("🔥 IMAGE GENERATION ERROR 🔥")
-        print(traceback.format_exc())
-        raise HTTPException(
-        status_code=500,
-        detail=str(e)
-    )
-
-    return {
-        "tool": "image_generate",
-        "prompt": prompt,
-        "url": url,
-    }
-def detect_intent(text: str) -> str:
-    if re.search(r"(afbeelding|image|plaatje|genereer|maak.*(afbeelding|image))", text, re.I):
-        return "image"
-    if re.search(r"(zoek|zoeken|opzoeken)", text, re.I):
-        return "search"
-    return "text"
-
 # =============================================================
 # POSTGRES DB FOR USERS / CONVERSATIONS / MESSAGES
 # =============================================================
@@ -817,64 +758,6 @@ async def login(payload: dict):
         "user_id": user["id"],
         "first_name": user["first_name"]
     }
-
-
-# Als bovenstaande niet werkt, deze weer terug:
-# @app.post("/auth/login")
-# async def login(payload: dict):
-#     email = (payload.get("email") or "").lower().strip()
-#     password = payload.get("password") or ""
-#     session_id = payload.get("session_id")
-
-#     if not email or not password or not session_id:
-#         raise HTTPException(
-#             status_code=400,
-#             detail="Email, wachtwoord en session_id verplicht"
-#         )
-
-#     conn = get_db_conn()
-#     cur = conn.cursor()
-
-#     # gebruiker ophalen
-#     cur.execute(
-#         "SELECT id, password_hash, first_name FROM auth_users WHERE email = %s",
-#         (email,)
-#     )
-#     user = cur.fetchone()
-
-#     if not user or not verify_password(password, user["password_hash"]):
-#         raise HTTPException(status_code=401, detail="Invalid credentials")
-
-#     # session verrijken (NIET vervangen)
-#     expires_at = datetime.now(timezone.utc) + timedelta(days=30)
-
-#     cur.execute(
-#         """
-#         INSERT INTO user_sessions (session_id, user_id, expires_at)
-#         VALUES (%s, %s, %s)
-#         ON CONFLICT (session_id)
-#         DO UPDATE SET
-#             user_id = EXCLUDED.user_id,
-#             expires_at = EXCLUDED.expires_at
-#         """,
-#         (session_id, user["id"], expires_at)
-#     )
-
-#     # last_login bijwerken
-#     cur.execute(
-#         "UPDATE auth_users SET last_login = NOW() WHERE id = %s",
-#         (user["id"],)
-#     )
-
-#     conn.commit()
-#     conn.close()
-
-#     return {
-#         "success": True,
-#         "session_id": session_id,
-#         "user_id": user["id"],
-#         "first_name": user["first_name"]
-#     }
 
 @app.post("/auth/logout")
 async def logout(payload: dict):
@@ -1166,20 +1049,7 @@ def detect_hints(question: str):
         "user_type_hint": user
     }
 
-    # =============================================================
-# IMAGE INTENT DETECTION
-# =============================================================
 
-def wants_image(q: str) -> bool:
-    triggers = [
-        "genereer",
-        "afbeelding",
-        "plaatje",
-        "beeld",
-        "image",
-        "illustratie",
-    ]
-    return any(t in q.lower() for t in triggers)
 
 
 
@@ -1202,32 +1072,7 @@ def detect_cold_start(sql_ms, kb_ms, ai_ms, total_ms):
         return "⏱️ Slow total"
     return "✓ warm"
 
-# -----------------------------
-# IMAGE ROUTE
-# -----------------------------
-def generate_image(prompt: str) -> str:
-    result = client.images.generate(
-        model="gpt-image-1",
-        prompt=prompt,
-        size="1024x1024"
-    )
 
-    # 🔎 Log volledige response (tijdelijk)
-    print("IMAGE RESPONSE:", result)
-
-    # ✅ Veilig ophalen
-    if result.data and len(result.data) > 0:
-        image = result.data[0]
-
-        # Sommige SDK's gebruiken .url, andere .b64_json
-        if hasattr(image, "url") and image.url:
-            return image.url
-
-        if hasattr(image, "b64_json") and image.b64_json:
-            return f"data:image/png;base64,{image.b64_json}"
-
-    # ❌ Fallback
-    return None
 
 
 # =============================================================
@@ -1271,19 +1116,19 @@ async def ask(request: Request):
             "answer": answer
         }
 
-    # =============================================================
-    # 🖼 IMAGE
-    # =============================================================
-    if intent == "image":
-        image_url = generate_image(question)
+    # # =============================================================
+    # # 🖼 IMAGE
+    # # =============================================================
+    # if intent == "image":
+    #     image_url = generate_image(question)
 
-        if not image_url:
-            answer = "⚠️ Afbeelding genereren mislukt."
-            store_message_pair(session_id, question, answer)
-            return {"type": "error", "answer": answer}
+    #     if not image_url:
+    #         answer = "⚠️ Afbeelding genereren mislukt."
+    #         store_message_pair(session_id, question, answer)
+    #         return {"type": "error", "answer": answer}
 
-        store_message_pair(session_id, question, f"[IMAGE]{image_url}")
-        return {"type": "image", "url": image_url}
+    #     store_message_pair(session_id, question, f"[IMAGE]{image_url}")
+    #     return {"type": "image", "url": image_url}
 
 
         
