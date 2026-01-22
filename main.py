@@ -7,7 +7,6 @@ from fastapi import FastAPI, Request, HTTPException
 from core.time import TimeContext
 from core.time_context import build_time_context
 from llm import call_yellowmind_llm
-from system_prompt import SYSTEM_PROMPT
 from chat import router as chat_router
 from image_shared import detect_intent, handle_image_intent
 
