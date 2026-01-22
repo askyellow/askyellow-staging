@@ -34,7 +34,7 @@ from psycopg2.extras import RealDictCursor
 from fastapi import APIRouter, Request
 from passlib.context import CryptContext
 from image import router as image_generate
-app.include_router(image_router)
+app.include_router(image_generate)
 
 
 from routes.health import router as health_router
