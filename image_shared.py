@@ -1,4 +1,4 @@
-from fastapi import Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException
 from openai import OpenAI
 import os
 
