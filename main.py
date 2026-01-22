@@ -1098,6 +1098,8 @@ async def ask(request: Request):
 
     intent = detect_intent(question)
 
+    is_time_question = any(k in question.lower() for k in TIME_KEYWORDS)
+
     if is_time_question:
         answer = f"Vandaag is het {TIME_CONTEXT.today_string()}."
         store_message_pair(session_id, question, answer)
@@ -1115,8 +1117,7 @@ async def ask(request: Request):
         "afgelopen jaarwisseling",
     ]
 
-    is_time_question = any(k in question.lower() for k in TIME_KEYWORDS)
-
+    
     # =============================================================
     # 🖼 IMAGE
     # =============================================================
@@ -1131,6 +1132,8 @@ async def ask(request: Request):
         store_message_pair(session_id, question, f"[IMAGE]{image_url}")
         return {"type": "image", "url": image_url}
 
+
+        
     # =============================================================
     # 🔍 SEARCH
     # =============================================================
