@@ -1118,15 +1118,15 @@ async def ask(request: Request):
     # 🖼 IMAGE
     # =============================================================
     if intent == "image":
-        image_url = generate_image(question)
+        return handle_image_intent(session_id, question)
 
-        if not image_url:
-            answer = "⚠️ Afbeelding genereren mislukt."
-            store_message_pair(session_id, question, answer)
-            return {"type": "error", "answer": answer}
+        # if not image_url:
+        #     answer = "⚠️ Afbeelding genereren mislukt."
+        #     store_message_pair(session_id, question, answer)
+        #     return {"type": "error", "answer": answer}
 
-        store_message_pair(session_id, question, f"[IMAGE]{image_url}")
-        return {"type": "image", "url": image_url}
+        # store_message_pair(session_id, question, f"[IMAGE]{image_url}")
+        # return {"type": "image", "url": image_url}
 
 
         
