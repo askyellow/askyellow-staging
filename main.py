@@ -9,7 +9,7 @@ from core.time_context import build_time_context
 from llm import call_yellowmind_llm
 from system_prompt import SYSTEM_PROMPT
 from chat import router as chat_router
-from image_shared import detect_intent
+from image_shared import detect_intent, handle_image_intent
 
 
 app = FastAPI(title="YellowMind API")
@@ -1098,6 +1098,14 @@ async def ask(request: Request):
 
     intent = detect_intent(question)
 
+    if is_time_question:
+        answer = f"Vandaag is het {TIME_CONTEXT.today_string()}."
+        store_message_pair(session_id, question, answer)
+        return {
+            "type": "text",
+            "answer": answer
+        }
+
     # 🕒 TIJDVRAGEN — DIRECT NA INTENT
     TIME_KEYWORDS = [
         "vandaag",
@@ -1109,30 +1117,20 @@ async def ask(request: Request):
 
     is_time_question = any(k in question.lower() for k in TIME_KEYWORDS)
 
-    if is_time_question:
-        answer = f"Vandaag is het {TIME_CONTEXT.today_string()}."
-        store_message_pair(session_id, question, answer)
-        return {
-            "type": "text",
-            "answer": answer
-        }
+    # =============================================================
+    # 🖼 IMAGE
+    # =============================================================
+    if intent == "image":
+        image_url = generate_image(question)
 
-    # # =============================================================
-    # # 🖼 IMAGE
-    # # =============================================================
-    # if intent == "image":
-    #     image_url = generate_image(question)
+        if not image_url:
+            answer = "⚠️ Afbeelding genereren mislukt."
+            store_message_pair(session_id, question, answer)
+            return {"type": "error", "answer": answer}
 
-    #     if not image_url:
-    #         answer = "⚠️ Afbeelding genereren mislukt."
-    #         store_message_pair(session_id, question, answer)
-    #         return {"type": "error", "answer": answer}
+        store_message_pair(session_id, question, f"[IMAGE]{image_url}")
+        return {"type": "image", "url": image_url}
 
-    #     store_message_pair(session_id, question, f"[IMAGE]{image_url}")
-    #     return {"type": "image", "url": image_url}
-
-
-        
     # =============================================================
     # 🔍 SEARCH
     # =============================================================
