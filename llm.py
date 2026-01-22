@@ -39,6 +39,11 @@ def call_yellowmind_llm(
         "content": MINIMAL_SYSTEM_PROMPT
         }
     ]
+    if hints and hints.get("user_name"):
+        messages.append({
+        "role": "system",
+        "content": f"De gebruiker heet {hints['user_name']}."
+    })
 
     if hints and hints.get("time_context"):
         messages.append({

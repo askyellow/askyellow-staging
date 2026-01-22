@@ -1151,7 +1151,8 @@ async def ask(request: Request):
        "time_context": time_context,
         "web_context": web_context
 }
-
+    if user and user.get("first_name"):
+        hints["user_name"] = user["first_name"]
 
     final_answer, _ = call_yellowmind_llm(
         question=question,
