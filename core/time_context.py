@@ -31,3 +31,5 @@ def build_llm_time_hint() -> str:
     else:
         return "Het is avond."
 
+def get_logical_date():
+    return datetime.now(ZoneInfo("Europe/Amsterdam")).date()
