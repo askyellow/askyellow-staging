@@ -6,6 +6,7 @@ from image_shared import (
     require_auth_session,
     handle_image_intent,
     )
+router = APIRouter()
 
 
 @router.post("/tool/image_generate")
