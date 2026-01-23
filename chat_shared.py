@@ -172,8 +172,12 @@ def get_or_create_daily_conversation(conn, user_id: int) -> int:
 
 # haalt bestaande history op READ ONLY    
 
-def get_history_for_model(conn, session_id: str, day: str | None = None, limit=30):
-    conv_id = get_active_conversation(conn, session_id)
+def get_history_for_model(
+    conn,
+    conversation_id: int,
+    day: str | None = None,
+    limit=30
+    ):
     if not conv_id:
         return None, []
 

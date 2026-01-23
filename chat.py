@@ -20,29 +20,48 @@ from llm import call_yellowmind_llm
 
 router = APIRouter()
 
+# /chat/history endpoint (voorbeeldstructuur)
+
 @router.get("/chat/history")
-def chat_history(session_id: str, day: str | None = None):
+def chat_history(session_id: str):
     conn = get_conn()
-    try:
-        user = get_auth_user_from_session(conn, session_id)
 
-        if user:
-            rows = get_user_history(conn, user["id"], day)
-        else:
-            _, rows = get_history_for_model(conn, session_id, day)
+    # 1. Resolve user (of guest)
+    user = get_auth_user_from_session(conn, session_id)
 
-        return {
-            "messages": [
-                {
-                    "role": r["role"],
-                    "content": r["content"],
-                    "created_at": r["created_at"]
-                }
-                for r in rows
-            ]
-        }
-    finally:
-        conn.close()
+    if user:
+        # -------------------------
+        # INGLOGDE USER
+        # -------------------------
+        user_id = user["id"]
+
+        # 🔑 DIT IS DE FIX
+        # altijd vandaag afdwingen / aanmaken
+        active_conversation_id = get_or_create_daily_conversation(conn, user_id)
+
+        # read-only history
+        today_history = get_user_history(conn, user_id, day="today")
+        yesterday_history = get_user_history(conn, user_id, day="yesterday")
+
+    else:
+        # -------------------------
+        # GUEST (legacy flow)
+        # -------------------------
+        active_conversation_id = get_active_conversation(conn, session_id)
+
+        _, today_history = get_history_for_model(
+            conn, session_id, day="today"
+        )
+        _, yesterday_history = get_history_for_model(
+            conn, session_id, day="yesterday"
+        )
+
+    return {
+        "active_conversation_id": active_conversation_id,
+        "today": today_history,
+        "yesterday": yesterday_history,
+    }
+
 
 
 @router.post("/chat")
