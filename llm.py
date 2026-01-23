@@ -32,7 +32,9 @@ def call_yellowmind_llm(
     hints,
     history=None
 ):
-   
+
+    print("🧠 RAW AI RESPONSE:", ai)
+
     messages = [
         {
         "role": "system",
@@ -66,6 +68,8 @@ def call_yellowmind_llm(
     if history:
         for msg in history:
             content = msg.get("content")
+            print("🧠 RAW AI HISTORY:", ai)
+
 
             # 🚫 alleen strings
             if not isinstance(content, str):
