@@ -263,33 +263,33 @@ def store_message_pair(session_id, user_text, assistant_text):
     finally:
         conn.close()
 
-     # deze functie haalt op voor de gespreksconversatie (Yello terug lezen)   
+    # deze functie haalt op voor de gespreksconversatie (Yello terug lezen)   
 
-    def get_history_for_llm(conn, session_id: str, limit=30):
-        user = get_auth_user_from_session(conn, session_id)
+def get_history_for_llm(conn, session_id: str, limit=30):
+    user = get_auth_user_from_session(conn, session_id)
 
-        if user:
-            # ingelogde user → huidige dag + gisteren
-            today = get_logical_date()
+    if user:
+        # ingelogde user → huidige dag + gisteren
+        today = get_logical_date()
 
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT m.role, m.content
-                FROM conversations c
-                JOIN messages m ON m.conversation_id = c.id
-                WHERE c.user_id = %s
-                AND c.conversation_date IN (%s, %s)
-                ORDER BY m.created_at ASC
-                LIMIT %s
-            """, (
-                user["id"],
-                today,
-                today - timedelta(days=1),
-                limit
-            ))
-            return cur.fetchall()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT m.role, m.content
+            FROM conversations c
+            JOIN messages m ON m.conversation_id = c.id
+            WHERE c.user_id = %s
+            AND c.conversation_date IN (%s, %s)
+            ORDER BY m.created_at ASC
+            LIMIT %s
+        """, (
+            user["id"],
+            today,
+            today - timedelta(days=1),
+            limit
+        ))
+        return cur.fetchall()
 
-        else:
-            # guest → bestaand gedrag
-            _, history = get_history_for_model(conn, session_id, limit=limit)
-            return history
+    else:
+        # guest → bestaand gedrag
+        _, history = get_history_for_model(conn, session_id, limit=limit)
+        return history
