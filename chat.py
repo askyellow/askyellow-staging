@@ -43,6 +43,9 @@ def chat_history(session_id: str):
         today_history = get_user_history(conn, user_id, day="today")
         yesterday_history = get_user_history(conn, user_id, day="yesterday")
 
+    if not today_history:
+        welcome_message = build_welcome_message(user.get("first_name"))
+
     else:
         # -------------------------
         # GUEST (legacy flow)
@@ -60,6 +63,7 @@ def chat_history(session_id: str):
         "active_conversation_id": active_conversation_id,
         "today": today_history,
         "yesterday": yesterday_history,
+        "welcome": welcome_message,
     }
 
 
