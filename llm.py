@@ -66,8 +66,6 @@ def call_yellowmind_llm(
     if history:
         for msg in history:
             content = msg.get("content")
-            print("🧠 RAW AI HISTORY:", ai)
-
 
             # 🚫 alleen strings
             if not isinstance(content, str):
@@ -82,7 +80,6 @@ def call_yellowmind_llm(
                 "content": content[:2000]  # harde safety cap
         })
 
-            print("🧠 RAW AI RESPONSE:", ai)
 
 
     # 🔹 User vraag
@@ -90,6 +87,7 @@ def call_yellowmind_llm(
         "role": "user",
         "content": question
     })
+    print("🧠 RAW AI RESPONSE:", ai)
 
     print("=== PAYLOAD TO MODEL ===")
     for i, m in enumerate(messages):
