@@ -93,8 +93,8 @@ def get_user_history(conn, user_id: int, day: str | None = None, limit=50):
     """
     cur = conn.cursor()
 
-    today = datetime.now(timezone.utc).date()
-
+    today = get_logical_date()  # ✅ Europe/Amsterdam leidend
+    
     if day == "today":
         date_filter = "conversation_date = %s"
         params = [user_id, today]
