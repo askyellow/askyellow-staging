@@ -94,7 +94,7 @@ def get_user_history(conn, user_id: int, day: str | None = None, limit=50):
     cur = conn.cursor()
 
     today = get_logical_date()  # ✅ Europe/Amsterdam leidend
-    
+
     if day == "today":
         date_filter = "conversation_date = %s"
         params = [user_id, today]
@@ -172,12 +172,9 @@ def get_or_create_daily_conversation(conn, user_id: int) -> int:
 
 # haalt bestaande history op READ ONLY    
 
-def get_history_for_model(
-    conn,
-    conversation_id: int,
-    day: str | None = None,
-    limit=30
-    ):
+def get_history_for_model(conn, session_id: str, day: str | None = None, limit=30):
+    # 🔑 ALLEEN guest-flow
+    conv_id = get_active_conversation(conn, session_id)
     if not conv_id:
         return None, []
 
@@ -187,12 +184,16 @@ def get_history_for_model(
     date_filter = ""
 
     if day == "today":
-        start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        start = datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
         date_filter = "AND created_at >= %s"
         params.append(start)
 
     elif day == "yesterday":
-        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
         yesterday_start = today_start - timedelta(days=1)
         date_filter = "AND created_at >= %s AND created_at < %s"
         params.extend([yesterday_start, today_start])
@@ -212,6 +213,7 @@ def get_history_for_model(
     )
 
     return conv_id, cur.fetchall()
+
 
 
    
