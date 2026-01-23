@@ -83,6 +83,9 @@ def chat(payload: dict):
 
     # 2️⃣ Hints (nu leeg, later uitbreidbaar)
     hints = {}
+    print("🧠 HISTORY TO LLM:", history)
+    print("🧠 HISTORY LEN:", len(history) if history else 0)
+
 
     # 3️⃣ LLM call
     answer, _ = call_yellowmind_llm(
