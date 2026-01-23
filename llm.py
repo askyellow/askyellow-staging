@@ -117,22 +117,33 @@ def call_yellowmind_llm(
         messages=messages
     )
 
-    final_answer = ai.choices[0].message.content
+    final_answer = None
 
-    # 🔒 Airbag: verboden zinnen filteren
-    BANNED_PHRASES = [
-        "Ik kan dit niet want ik ben een AI"
-    ]
+    if ai.choices:
+        msg = ai.choices[0].message
+        if hasattr(msg, "content") and msg.content:
+            final_answer = msg.content
+        elif isinstance(msg, dict):
+            final_answer = msg.get("content")
 
-    lower_answer = final_answer.lower()
+    if not final_answer:
+        print("🚨 NO CONTENT IN AI RESPONSE")
+        final_answer = "⚠️ Ik had even een denkfoutje, kun je dat nog eens vragen?"
 
-    for phrase in BANNED_PHRASES:
-        if phrase in lower_answer:
-            final_answer = (
-                "Ik kan je hiervoor niet direct een antwoord geven. "
-                "Kun je de laatste vraag anders formuleren?"
-            )
-            break
+        # 🔒 Airbag: verboden zinnen filteren
+        BANNED_PHRASES = [
+            "Ik kan dit niet want ik ben een AI"
+        ]
 
-    return final_answer, []
+        lower_answer = final_answer.lower()
+
+        for phrase in BANNED_PHRASES:
+            if phrase in lower_answer:
+                final_answer = (
+                    "Ik kan je hiervoor niet direct een antwoord geven. "
+                    "Kun je de laatste vraag anders formuleren?"
+                )
+                break
+
+        return final_answer, []
 
