@@ -15,7 +15,7 @@ from chat_shared import (
     get_history_for_model,
     get_auth_user_from_session,
     build_welcome_message,
-    get_history_for_llm 
+    get_history_for_llm,
 )
 from llm import call_yellowmind_llm
 
