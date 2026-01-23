@@ -267,14 +267,10 @@ def store_message_pair(session_id, user_text, assistant_text):
 
 def get_history_for_llm(conn, session_id: str, limit=30):
     user = get_auth_user_from_session(conn, session_id)
-    print("🔎 get_history_for_llm called for session:", session_id)
+    cur = conn.cursor()
 
     if user:
-        # ingelogde user → huidige dag + gisteren
-        today = get_logical_date()
-
-        cur = conn.cursor()
-        # 1. haal actieve conversation op
+        # 1️⃣ haal actieve conversation voor deze user
         cur.execute("""
             SELECT id
             FROM conversations
@@ -288,25 +284,27 @@ def get_history_for_llm(conn, session_id: str, limit=30):
             return []
 
         conv_id = row["id"]
-
-        # 2. haal messages uit DIE conversation
-        cur.execute("""
-            SELECT role, content
-            FROM messages
-            WHERE conversation_id = %s
-            ORDER BY created_at ASC
-            LIMIT %s
-        """, (conv_id, limit))
-
-        rows = cur.fetchall()
-
-        return [
-            {"role": r["role"], "content": r["content"]}
-            for r in rows
-        ]
-
-
     else:
-        # guest → bestaand gedrag
-        _, history = get_history_for_model(conn, session_id, limit=limit)
-        return history
+        # guest
+        conv_id = get_active_conversation(conn, session_id)
+        if not conv_id:
+            return []
+
+    # 2️⃣ haal ALLE messages uit die conversation
+    cur.execute("""
+        SELECT role, content
+        FROM messages
+        WHERE conversation_id = %s
+        ORDER BY created_at ASC
+        LIMIT %s
+    """, (conv_id, limit))
+
+    rows = cur.fetchall()
+
+    # 3️⃣ normaliseer voor LLM
+    return [
+        {"role": r["role"], "content": r["content"]}
+        for r in rows
+        if isinstance(r["content"], str)
+    ]
+
