@@ -86,6 +86,8 @@ def chat(payload: dict):
     print("🧠 HISTORY TO LLM:", history)
     print("🧠 HISTORY LEN:", len(history) if history else 0)
 
+    print("🧠 HISTORY FROM get_history_for_llm:", history)
+    print("🧠 HISTORY LEN:", len(history))
 
     # 3️⃣ LLM call
     answer, _ = call_yellowmind_llm(

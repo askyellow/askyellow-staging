@@ -267,27 +267,44 @@ def store_message_pair(session_id, user_text, assistant_text):
 
 def get_history_for_llm(conn, session_id: str, limit=30):
     user = get_auth_user_from_session(conn, session_id)
+    print("🔎 get_history_for_llm called for session:", session_id)
 
     if user:
         # ingelogde user → huidige dag + gisteren
         today = get_logical_date()
 
         cur = conn.cursor()
+        # 1. haal actieve conversation op
         cur.execute("""
-            SELECT m.role, m.content
-            FROM conversations c
-            JOIN messages m ON m.conversation_id = c.id
-            WHERE c.user_id = %s
-            AND c.conversation_date IN (%s, %s)
-            ORDER BY m.created_at ASC
+            SELECT id
+            FROM conversations
+            WHERE user_id = %s
+            AND ended_at IS NULL
+            ORDER BY started_at DESC
+            LIMIT 1
+        """, (user["id"],))
+        row = cur.fetchone()
+        if not row:
+            return []
+
+        conv_id = row["id"]
+
+        # 2. haal messages uit DIE conversation
+        cur.execute("""
+            SELECT role, content
+            FROM messages
+            WHERE conversation_id = %s
+            ORDER BY created_at ASC
             LIMIT %s
-        """, (
-            user["id"],
-            today,
-            today - timedelta(days=1),
-            limit
-        ))
-        return cur.fetchall()
+        """, (conv_id, limit))
+
+        rows = cur.fetchall()
+
+        return [
+            {"role": r["role"], "content": r["content"]}
+            for r in rows
+        ]
+
 
     else:
         # guest → bestaand gedrag
