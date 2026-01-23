@@ -33,8 +33,6 @@ def call_yellowmind_llm(
     history=None
 ):
 
-    print("🧠 RAW AI RESPONSE:", ai)
-
     messages = [
         {
         "role": "system",
@@ -84,7 +82,8 @@ def call_yellowmind_llm(
                 "content": content[:2000]  # harde safety cap
         })
 
-    
+            print("🧠 RAW AI RESPONSE:", ai)
+
 
     # 🔹 User vraag
     messages.append({
