@@ -14,7 +14,8 @@ from chat_shared import (
     get_or_create_daily_conversation,
     get_history_for_model,
     get_auth_user_from_session,
-    build_welcome_message, 
+    build_welcome_message,
+    get_history_for_llm 
 )
 from llm import call_yellowmind_llm
 
@@ -77,7 +78,7 @@ def chat(payload: dict):
 
     # 1️⃣ History ophalen (read-only)
     conn = get_conn()
-    _, history = get_history_for_model(conn, session_id)
+    history = get_history_for_llm(conn, session_id)
     conn.close()
 
     # 2️⃣ Hints (nu leeg, later uitbreidbaar)
