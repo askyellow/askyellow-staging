@@ -87,7 +87,6 @@ def call_yellowmind_llm(
         "role": "user",
         "content": question
     })
-    print("🧠 RAW AI RESPONSE:", ai)
 
     print("=== PAYLOAD TO MODEL ===")
     for i, m in enumerate(messages):
@@ -141,6 +140,7 @@ def call_yellowmind_llm(
                     "Kun je de laatste vraag anders formuleren?"
                 )
                 break
+        print("🧠 RAW AI RESPONSE:", ai)
 
         return final_answer, []
 
