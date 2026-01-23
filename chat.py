@@ -25,39 +25,36 @@ router = APIRouter()
 @router.get("/chat/history")
 def chat_history(session_id: str):
     conn = get_conn()
+    welcome_message = None  # 🔑 altijd definiëren
 
-    # 1. Resolve user (of guest)
     user = get_auth_user_from_session(conn, session_id)
 
     if user:
-        # -------------------------
+        # =========================
         # INGLOGDE USER
-        # -------------------------
+        # =========================
         user_id = user["id"]
 
-        # 🔑 DIT IS DE FIX
-        # altijd vandaag afdwingen / aanmaken
+        # altijd vandaag afdwingen
         active_conversation_id = get_or_create_daily_conversation(conn, user_id)
 
-        # read-only history
         today_history = get_user_history(conn, user_id, day="today")
         yesterday_history = get_user_history(conn, user_id, day="yesterday")
 
-    if not today_history:
-        welcome_message = build_welcome_message(user.get("first_name"))
+        # welkom alleen bij lege today
+        if not today_history:
+            welcome_message = build_welcome_message(user.get("first_name"))
 
     else:
-        # -------------------------
-        # GUEST (legacy flow)
-        # -------------------------
+        # =========================
+        # GUEST (legacy)
+        # =========================
         active_conversation_id = get_active_conversation(conn, session_id)
 
-        _, today_history = get_history_for_model(
-            conn, session_id, day="today"
-        )
-        _, yesterday_history = get_history_for_model(
-            conn, session_id, day="yesterday"
-        )
+        _, today_history = get_history_for_model(conn, session_id, day="today")
+        _, yesterday_history = get_history_for_model(conn, session_id, day="yesterday")
+
+    conn.close()
 
     return {
         "active_conversation_id": active_conversation_id,
@@ -65,6 +62,7 @@ def chat_history(session_id: str):
         "yesterday": yesterday_history,
         "welcome": welcome_message,
     }
+
 
 
 
