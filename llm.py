@@ -142,5 +142,5 @@ def call_yellowmind_llm(
                 )
                 break
 
-        return final_answer, []
+    return final_answer, []
 
