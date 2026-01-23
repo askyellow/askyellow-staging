@@ -112,6 +112,7 @@ def call_yellowmind_llm(
         model="gpt-4o-mini",
         messages=messages
     )
+    print("🧠 RAW AI RESPONSE:", ai)
 
     final_answer = None
 
@@ -140,7 +141,6 @@ def call_yellowmind_llm(
                     "Kun je de laatste vraag anders formuleren?"
                 )
                 break
-        print("🧠 RAW AI RESPONSE:", ai)
 
         return final_answer, []
 
