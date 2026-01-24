@@ -89,6 +89,8 @@ def chat(payload: dict):
     history = get_history_for_llm(conn, session_id)
     conn.close()
 
+    hints = {}
+
     # 🔥 2️⃣ IMAGE FLOW
     if wants_image:
         image_url = generate_image(message)  # jouw image-functie
