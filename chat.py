@@ -72,22 +72,27 @@ def chat_history(session_id: str):
 def chat(payload: dict):
     session_id = payload.get("session_id")
     message = payload.get("message", "").strip()
+    wants_image = payload.get("wants_image", False)
 
     if not session_id or not message:
         raise HTTPException(status_code=400, detail="session_id of message ontbreekt")
 
-    # 1️⃣ History ophalen (read-only)
+    # 1️⃣ history ophalen
     conn = get_conn()
     history = get_history_for_llm(conn, session_id)
     conn.close()
 
-    # 2️⃣ Hints (nu leeg, later uitbreidbaar)
-    hints = {}
-    print("🧠 HISTORY TO LLM:", history)
-    print("🧠 HISTORY LEN:", len(history) if history else 0)
+    # 🔥 2️⃣ IMAGE FLOW
+    if wants_image:
+        image_url = generate_image_with_yellowmind(message)  # jouw image-functie
 
-    print("🧠 HISTORY FROM get_history_for_llm:", history)
-    print("🧠 HISTORY LEN:", len(history))
+        # opslag (optioneel)
+        store_message_pair(session_id, message, "[IMAGE]" + image_url)
+
+        return {
+            "type": "image",
+            "url": image_url
+        }
 
     # 3️⃣ LLM call
     answer, _ = call_yellowmind_llm(
