@@ -17,6 +17,13 @@ from chat_shared import (
     build_welcome_message,
     get_history_for_llm,
 )
+from image_shared import (
+    wants_image,
+    generate_image,
+    detect_intent,
+    require_auth_session,
+    handle_image_intent,
+    )
 from llm import call_yellowmind_llm
 
 
@@ -84,7 +91,7 @@ def chat(payload: dict):
 
     # 🔥 2️⃣ IMAGE FLOW
     if wants_image:
-        image_url = generate_image_with_yellowmind(message)  # jouw image-functie
+        image_url = generate_image(message)  # jouw image-functie
 
         # opslag (optioneel)
         store_message_pair(session_id, message, "[IMAGE]" + image_url)
