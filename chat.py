@@ -29,7 +29,7 @@ from llm import call_yellowmind_llm
 
 router = APIRouter()
 
-# /chat/history endpoint (voorbeeldstructuur)
+# /chat/history endpoint 
 
 @router.get("/chat/history")
 def chat_history(session_id: str):
@@ -50,9 +50,16 @@ def chat_history(session_id: str):
         today_history = get_user_history(conn, user_id, day="today")
         yesterday_history = get_user_history(conn, user_id, day="yesterday")
 
-        # welkom alleen bij lege today
-        if not today_history:
+        # 🔍 alleen zichtbare berichten (geen system)
+        visible_today = [
+            m for m in today_history
+            if m.get("role") != "system"
+        ]
+
+        # welkom alleen als er voor de gebruiker nog niets te zien is
+        if not visible_today:
             welcome_message = build_welcome_message(user.get("first_name"))
+
 
     else:
         # =========================
