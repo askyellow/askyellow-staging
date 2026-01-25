@@ -47,6 +47,9 @@ def chat_history(session_id: str):
         # altijd vandaag afdwingen
         active_conversation_id = get_or_create_daily_conversation(conn, user_id)
 
+        # NB: today_history kan system-berichten bevatten
+        # die niet zichtbaar zijn in de UI
+
         today_history = get_user_history(conn, user_id, day="today")
         yesterday_history = get_user_history(conn, user_id, day="yesterday")
 
