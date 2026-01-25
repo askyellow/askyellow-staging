@@ -778,36 +778,29 @@ async def register(payload: dict):
     first_name = (payload.get("first_name") or "").strip()
     last_name = (payload.get("last_name") or "").strip()
 
-    
     if not email or not password or not first_name or not last_name:
         raise HTTPException(status_code=400, detail="Alle velden zijn verplicht")
 
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Wachtwoord te kort")
-    
-    session_id = payload.get("session_id")
-    if not session_id:
-        raise HTTPException(status_code=400, detail="session_id ontbreekt")
 
     conn = get_db_conn()
     cur = conn.cursor()
 
-    # bestaat email al?
-    cur.execute("SELECT id FROM auth_users WHERE email = %s", (email,))
+    # Bestaat email al?
+    cur.execute(
+        "SELECT id FROM auth_users WHERE email = %s",
+        (email,)
+    )
     if cur.fetchone():
         conn.close()
         raise HTTPException(status_code=409, detail="Email bestaat al")
 
-    session_id = payload.get("session_id")
-    if not session_id:
-        raise HTTPException(status_code=400, detail="session_id ontbreekt")
-
+    # Wachtwoord veilig opslaan
     safe_password = normalize_password(password)
     password_hash = pwd_context.hash(safe_password)
-    pwd_context.verify(password, password_hash)
 
-
-    # gebruiker aanmaken
+    # Gebruiker aanmaken
     cur.execute(
         """
         INSERT INTO auth_users (email, password_hash, first_name, last_name)
@@ -818,31 +811,14 @@ async def register(payload: dict):
     )
     user_id = cur.fetchone()["id"]
 
-    # auto-login sessie
-    expires_at = datetime.utcnow() + timedelta(days=7)
-
-    cur.execute(
-        """
-        INSERT INTO user_sessions (session_id, user_id, expires_at)
-        VALUES (%s, %s, %s)
-        ON CONFLICT (session_id)
-        DO UPDATE SET
-            user_id = EXCLUDED.user_id,
-            expires_at = EXCLUDED.expires_at
-        """,
-    (session_id, user_id, expires_at)
-)
-
-
-
     conn.commit()
     conn.close()
 
     return {
         "success": True,
-        "session": session_id,
-        "first_name": first_name
+        "user_id": user_id
     }
+
 @app.post("/auth/request-password-reset")
 async def request_password_reset(payload: dict):
     email = (payload.get("email") or "").lower().strip()
