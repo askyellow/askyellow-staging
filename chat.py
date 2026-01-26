@@ -30,81 +30,38 @@ from llm import call_yellowmind_llm
 router = APIRouter()
 
 # /chat/history endpoint (voorbeeldstructuur)
-
 @router.get("/chat/history")
 def chat_history(session_id: str):
     conn = get_conn()
+    welcome_message = None
 
     user = get_auth_user_from_session(conn, session_id)
 
     if user:
         user_id = user["id"]
 
-        # 🔑 DIT ONTBRAK
-        conversation_id = get_or_create_daily_conversation(conn, user_id)
+        active_conversation_id = get_or_create_daily_conversation(conn, user_id)
 
-        messages = get_messages_for_conversation(conn, conversation_id)
+        today_history = get_user_history(conn, user_id, day="today")
+        yesterday_history = get_user_history(conn, user_id, day="yesterday")
 
-        welcome = None
-        if not messages:
-            welcome = build_welcome_message(user.get("first_name"))
+        if not today_history:
+            welcome_message = build_welcome_message(user.get("first_name"))
 
-        return {
-            "active_conversation_id": conversation_id,
-            "today": messages,
-            "yesterday": [],
-            "welcome": welcome
-        }
+    else:
+        active_conversation_id = get_active_conversation(conn, session_id)
+        _, today_history = get_history_for_model(conn, session_id, day="today")
+        _, yesterday_history = get_history_for_model(conn, session_id, day="yesterday")
+        welcome_message = build_welcome_message(None)
 
-    # gast
+    conn.close()
+
     return {
-        "active_conversation_id": None,
-        "today": [],
-        "yesterday": [],
-        "welcome": build_welcome_message(None)
+        "active_conversation_id": active_conversation_id,
+        "today": today_history,
+        "yesterday": yesterday_history,
+        "welcome": welcome_message,
     }
-
-# @router.get("/chat/history")
-# def chat_history(session_id: str):
-#     conn = get_conn()
-#     welcome_message = None  # 🔑 altijd definiëren
-
-#     user = get_auth_user_from_session(conn, session_id)
-
-#     if user:
-#         # =========================
-#         # INGLOGDE USER
-#         # =========================
-#         user_id = user["id"]
-
-#         # altijd vandaag afdwingen
-#         active_conversation_id = get_or_create_daily_conversation(conn, user_id)
-
-#         today_history = get_user_history(conn, user_id, day="today")
-#         yesterday_history = get_user_history(conn, user_id, day="yesterday")
-
-#         # welkom alleen bij lege today
-#         if not today_history:
-#             welcome_message = build_welcome_message(user.get("first_name"))
-
-#     else:
-#         # =========================
-#         # GUEST (legacy)
-#         # =========================
-#         active_conversation_id = get_active_conversation(conn, session_id)
-
-#         _, today_history = get_history_for_model(conn, session_id, day="today")
-#         _, yesterday_history = get_history_for_model(conn, session_id, day="yesterday")
-
-#     conn.close()
-
-#     return {
-#         "active_conversation_id": active_conversation_id,
-#         "today": today_history,
-#         "yesterday": yesterday_history,
-#         "welcome": welcome_message,
-#     }
-
 
 
 
