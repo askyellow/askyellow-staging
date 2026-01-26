@@ -34,43 +34,76 @@ router = APIRouter()
 @router.get("/chat/history")
 def chat_history(session_id: str):
     conn = get_conn()
-    welcome_message = None  # 🔑 altijd definiëren
 
     user = get_auth_user_from_session(conn, session_id)
 
     if user:
-        # =========================
-        # INGLOGDE USER
-        # =========================
         user_id = user["id"]
 
-        # altijd vandaag afdwingen
-        active_conversation_id = get_or_create_daily_conversation(conn, user_id)
+        # 🔑 DIT ONTBRAK
+        conversation_id = get_or_create_daily_conversation(conn, user_id)
 
-        today_history = get_user_history(conn, user_id, day="today")
-        yesterday_history = get_user_history(conn, user_id, day="yesterday")
+        messages = get_messages_for_conversation(conn, conversation_id)
 
-        # welkom alleen bij lege today
-        if not today_history:
-            welcome_message = build_welcome_message(user.get("first_name"))
+        welcome = None
+        if not messages:
+            welcome = build_welcome_message(user.get("first_name"))
 
-    else:
-        # =========================
-        # GUEST (legacy)
-        # =========================
-        active_conversation_id = get_active_conversation(conn, session_id)
+        return {
+            "active_conversation_id": conversation_id,
+            "today": messages,
+            "yesterday": [],
+            "welcome": welcome
+        }
 
-        _, today_history = get_history_for_model(conn, session_id, day="today")
-        _, yesterday_history = get_history_for_model(conn, session_id, day="yesterday")
-
-    conn.close()
-
+    # gast
     return {
-        "active_conversation_id": active_conversation_id,
-        "today": today_history,
-        "yesterday": yesterday_history,
-        "welcome": welcome_message,
+        "active_conversation_id": None,
+        "today": [],
+        "yesterday": [],
+        "welcome": build_welcome_message(None)
     }
+
+# @router.get("/chat/history")
+# def chat_history(session_id: str):
+#     conn = get_conn()
+#     welcome_message = None  # 🔑 altijd definiëren
+
+#     user = get_auth_user_from_session(conn, session_id)
+
+#     if user:
+#         # =========================
+#         # INGLOGDE USER
+#         # =========================
+#         user_id = user["id"]
+
+#         # altijd vandaag afdwingen
+#         active_conversation_id = get_or_create_daily_conversation(conn, user_id)
+
+#         today_history = get_user_history(conn, user_id, day="today")
+#         yesterday_history = get_user_history(conn, user_id, day="yesterday")
+
+#         # welkom alleen bij lege today
+#         if not today_history:
+#             welcome_message = build_welcome_message(user.get("first_name"))
+
+#     else:
+#         # =========================
+#         # GUEST (legacy)
+#         # =========================
+#         active_conversation_id = get_active_conversation(conn, session_id)
+
+#         _, today_history = get_history_for_model(conn, session_id, day="today")
+#         _, yesterday_history = get_history_for_model(conn, session_id, day="yesterday")
+
+#     conn.close()
+
+#     return {
+#         "active_conversation_id": active_conversation_id,
+#         "today": today_history,
+#         "yesterday": yesterday_history,
+#         "welcome": welcome_message,
+#     }
 
 
 
