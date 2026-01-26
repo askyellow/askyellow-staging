@@ -770,7 +770,6 @@ async def logout(payload: dict):
 
     return {"ok": True}
 
-
 @app.post("/auth/register")
 async def register(payload: dict):
     email = (payload.get("email") or "").lower().strip()
@@ -800,7 +799,7 @@ async def register(payload: dict):
     safe_password = normalize_password(password)
     password_hash = pwd_context.hash(safe_password)
 
-    # Gebruiker aanmaken
+    # 1️⃣ User aanmaken
     cur.execute(
         """
         INSERT INTO auth_users (email, password_hash, first_name, last_name)
@@ -811,12 +810,27 @@ async def register(payload: dict):
     )
     user_id = cur.fetchone()["id"]
 
+    # 2️⃣ Session aanmaken (AUTO-LOGIN)
+    session_id = str(uuid.uuid4())
+    expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+
+    cur.execute(
+        """
+        INSERT INTO user_sessions (session_id, user_id, expires_at)
+        VALUES (%s, %s, %s)
+        """,
+        (session_id, user_id, expires_at)
+    )
+
     conn.commit()
     conn.close()
 
+    # 3️⃣ Return = direct ingelogd
     return {
         "success": True,
-        "user_id": user_id
+        "user_id": user_id,
+        "first_name": first_name,
+        "session_id": session_id
     }
 
 @app.post("/auth/request-password-reset")
