@@ -50,9 +50,13 @@ def get_affiliate_options(intent: str, query: str, limit: int = 3):
             rows = cur.fetchall()
 
             return [
-                {"title": r[0], "dummy_url": r[1]}
-                for r in rows
-            ]
+            {
+                "title": r["title"],
+                "dummy_url": r["url"]
+            }
+            for r in rows
+        ]
+
     finally:
         conn.close()
 
