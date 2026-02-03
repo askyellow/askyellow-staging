@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Query
-from db.affiliate_engine import get_affiliate_options
+from db.affiliate import get_affiliate_options
 
 router = APIRouter()
 
@@ -14,3 +14,4 @@ def affiliate_options(
         "count": len(options),
         "options": options
     }
+
