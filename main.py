@@ -564,21 +564,34 @@ async def tool_shopify_search(payload: dict):
     }
 
 
-# ---- Knowledge Search Tool ----
+# # ---- Knowledge Search Tool ----
 @app.post("/tool/knowledge_search")
 async def tool_knowledge_search(payload: dict):
-    """Maakt gebruik van de bestaande Python knowledge engine."""
     query = (payload.get("query") or "").strip()
     if not query:
         raise HTTPException(status_code=400, detail="Missing query")
 
-    # Gebruik de al geladen KNOWLEDGE_ENTRIES + match_question
-    kb_answer = match_question(query, KNOWLEDGE_ENTRIES)
+    kb_answer = search_knowledge(query)
     return {
         "tool": "knowledge_search",
         "query": query,
         "answer": kb_answer,
     }
+
+# @app.post("/tool/knowledge_search")
+# async def tool_knowledge_search(payload: dict):
+#     """Maakt gebruik van de bestaande Python knowledge engine."""
+#     query = (payload.get("query") or "").strip()
+#     if not query:
+#         raise HTTPException(status_code=400, detail="Missing query")
+
+#     # Gebruik de al geladen KNOWLEDGE_ENTRIES + match_question
+#     kb_answer = match_question(query, KNOWLEDGE_ENTRIES)
+#     return {
+#         "tool": "knowledge_search",
+#         "query": query,
+#         "answer": kb_answer,
+#     }
 
 
 @app.on_event("startup")
