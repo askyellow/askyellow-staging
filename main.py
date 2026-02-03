@@ -9,8 +9,8 @@ from core.time_context import build_time_context
 from llm import call_yellowmind_llm
 from chat import router as chat_router
 from image_shared import detect_intent, handle_image_intent
-# main.py
 from db import get_db_conn, init_db
+from knowledge import search_knowledge
 
 
 app = FastAPI(title="YellowMind API")
