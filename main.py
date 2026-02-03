@@ -38,11 +38,12 @@ from chat_shared import (
     get_auth_user_from_session,
     get_history_for_model, store_message_pair,
 )
-
+from affiliate import router as affiliate_router
 from routes.health import router as health_router
 app.include_router(health_router, include_in_schema=False)
 app.include_router(chat_router)
 app.include_router(image_generate)
+app.include_router(affiliate_router)
 
 time_context = build_time_context()
 
