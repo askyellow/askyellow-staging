@@ -18,7 +18,7 @@ def affiliate_options(
 
 def get_affiliate_conn():
     return pymysql.connect(
-        host="localhost",          # of Strato host
+        host="rdbms.strato.de",          # of Strato host
         user="dbu134629",
         password="AskYellow_20_25",
         database="askyellow_affiliate",
@@ -57,3 +57,4 @@ def get_affiliate_options(intent: str, query: str, limit: int = 3):
 
     finally:
         conn.close()
+
