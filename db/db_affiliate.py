@@ -4,7 +4,7 @@ def get_affiliate_conn():
     return pymysql.connect(
         host="localhost",          # of Strato host
         user="dbu134629",
-        password="JE_DB_WACHTWOORD",
+        password="AskYellow_20_25",
         database="askyellow_affiliate",
         charset="utf8mb4",
         cursorclass=pymysql.cursors.DictCursor
@@ -41,3 +41,4 @@ def get_affiliate_options(intent: str, query: str, limit: int = 3):
 
     finally:
         conn.close()
+
