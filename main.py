@@ -11,6 +11,7 @@ from chat import router as chat_router
 from image_shared import detect_intent, handle_image_intent
 from db import get_db_conn, init_db
 from knowledge import search_knowledge
+from ask_handler import router as ask_router
 
 
 app = FastAPI(title="YellowMind API")
@@ -46,6 +47,7 @@ app.include_router(health_router, include_in_schema=False)
 app.include_router(chat_router)
 app.include_router(image_generate)
 app.include_router(affiliate_router)
+app.include_router(ask_router)
 
 time_context = build_time_context()
 
@@ -955,12 +957,6 @@ def detect_hints(question: str):
         "user_type_hint": user
     }
 
-
-
-
-
-
-
 # =============================================================
 # X. PERFORMANCE STATUS CHECK
 # =============================================================
@@ -977,52 +973,6 @@ def detect_cold_start(sql_ms, kb_ms, ai_ms, total_ms):
     if total_ms > 5000:
         return "⏱️ Slow total"
     return "✓ warm"
-
-
-
-
-# =============================================================
-# MAIN ASK ENDPOINT
-# =============================================================
-
-
-@app.post("/ask")
-async def ask(request: Request):
-    payload = await request.json()
-
-    question = payload.get("question")
-    session_id = payload.get("session_id")
-    language = payload.get("language", "nl")
-
-    # -----------------------------
-    # AUTH
-    # -----------------------------
-    conn = get_db_conn()
-    user = get_auth_user_from_session(conn, session_id)
-    conn.close()
-
-    intent = detect_intent(question)
-
-    # 🕒 TIJDVRAGEN — DIRECT NA INTENT
-    TIME_KEYWORDS = [
-        "vandaag",
-        "welke dag is het",
-        "wat voor dag is het",
-        "laatste jaarwisseling",
-        "afgelopen jaarwisseling",
-    ]
-
-    is_time_question = any(k in question.lower() for k in TIME_KEYWORDS)
-
-    if is_time_question:
-        answer = f"Vandaag is het {TIME_CONTEXT.today_string()}."
-        store_message_pair(session_id, question, answer)
-        return {
-            "type": "text",
-            "answer": answer
-        }
-
-    
 
     
     # =============================================================
