@@ -936,6 +936,6 @@ def detect_cold_start(sql_ms, kb_ms, ai_ms, total_ms):
 # main.py doet hier niets meer mee
 # (hooguit intent normaliseren)
 
-if intent == "search":
-    intent = "text"
+# if intent == "search":
+#     intent = "text"
 
