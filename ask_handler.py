@@ -104,7 +104,7 @@ async def ask(request: Request):
             )
 
         # 2️⃣ Lage specificiteit → vervolgvraag stellen
-        if specificity == "low":
+    if specificity == "low":
             questions = get_search_questions(category)
             answer = " ".join(questions[:2])
 
@@ -124,7 +124,7 @@ async def ask(request: Request):
             )
 
         # 3️⃣ Hoge specificiteit → verder zoeken / verkoper-fase
-        if specificity == "high":
+    if specificity == "high":
             followup = interpret_search_followup(question)
 
             # 3a️⃣ Gebruiker zegt: dit is genoeg
@@ -161,14 +161,14 @@ async def ask(request: Request):
         # ----------------------------------
         # SEARCH algemene fallback
         # ----------------------------------
-        answer = "Ik help je zo goed mogelijk verder 😊"
-        store_message_pair(session_id, question, answer)
-        return _response(
-        type_="text",
-        answer=answer,
-        intent=intent,
-        mode=mode
-    )   
+    answer = "Ik help je zo goed mogelijk verder 😊"
+    store_message_pair(session_id, question, answer)
+    return _response(
+    type_="text",
+    answer=answer,
+    intent=intent,
+    mode=mode
+)   
 
 # =============================================================
 # HELPERS
