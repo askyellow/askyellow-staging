@@ -71,16 +71,32 @@ async def ask(request: Request):
         questions = get_search_questions(category)
         answer = " ".join(questions[:2])
 
-    
+        store_message_pair(session_id, question, answer)
+
+        return _response(
+            type_="search",
+            answer=answer,
+            intent=intent,
+            mode=mode
+        )
+        
+    if mode == "search" and specificity == "high":
+        answer = "Ik heb genoeg info om verder te helpen."
+        store_message_pair(session_id, question, answer)
+        return _response(
+                    type_="search",
+                    answer=answer,
+                    intent=intent,
+                    mode=mode
+                )
+    answer = "Ik help je zo goed mogelijk verder 😊"
     store_message_pair(session_id, question, answer)
-
     return _response(
-        type_="text",
-        answer=answer,
-        intent=intent,
-        mode=mode
-    )
-
+    type_="text",
+    answer=answer,
+    intent=intent,
+    mode=mode
+)   
 
 # =============================================================
 # HELPERS
