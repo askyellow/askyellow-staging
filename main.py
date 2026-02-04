@@ -12,6 +12,7 @@ from image_shared import detect_intent, handle_image_intent
 from db import get_db_conn, init_db
 from knowledge import search_knowledge
 from ask_handler import router as ask_router
+from websearch import router as websearch_router
 
 
 app = FastAPI(title="YellowMind API")
@@ -48,6 +49,7 @@ app.include_router(chat_router)
 app.include_router(image_generate)
 app.include_router(affiliate_router)
 app.include_router(ask_router)
+app.include_router(websearch_router)
 
 time_context = build_time_context()
 
@@ -351,46 +353,6 @@ def load_file(path: str) -> str:
 # 3. TOOL ENDPOINTS (WEBSEARCH / SHOPIFY / KNOWLEDGE / IMAGE)
 # =============================================================
 
-# ---- Websearch Tool (Serper) ----
-SERPER_API_KEY = os.getenv("SERPER_API_KEY")
-
-@app.post("/tool/websearch")
-async def tool_websearch(payload: dict):
-    """Proxy naar Serper API voor webresultaten."""
-    query = (payload.get("query") or "").strip()
-    if not query:
-        raise HTTPException(status_code=400, detail="Query missing")
-
-    if not SERPER_API_KEY:
-        raise HTTPException(status_code=500, detail="SERPER_API_KEY ontbreekt op de server")
-
-    url = "https://google.serper.dev/search"
-    headers = {
-        "X-API-KEY": SERPER_API_KEY,
-        "Content-Type": "application/json",
-    }
-    body = {"q": query}
-
-    try:
-        r = requests.post(url, json=body, headers=headers, timeout=10)
-        data = r.json()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Websearch error: {e}")
-
-    results = []
-    for item in data.get("organic", [])[:4]:
-        results.append({
-            "title": item.get("title"),
-            "snippet": item.get("snippet"),
-            "url": item.get("link"),
-        })
-
-    return {
-        "tool": "websearch",
-        "query": query,
-        "results": results,
-    }
-
 
 # ---- Shopify Search Tool 2.0 (title + body + tags + fuzzy) ----
 SHOPIFY_STORE = os.getenv("SHOPIFY_STORE_URL")
@@ -579,21 +541,6 @@ async def tool_knowledge_search(payload: dict):
         "query": query,
         "answer": kb_answer,
     }
-
-# @app.post("/tool/knowledge_search")
-# async def tool_knowledge_search(payload: dict):
-#     """Maakt gebruik van de bestaande Python knowledge engine."""
-#     query = (payload.get("query") or "").strip()
-#     if not query:
-#         raise HTTPException(status_code=400, detail="Missing query")
-
-#     # Gebruik de al geladen KNOWLEDGE_ENTRIES + match_question
-#     kb_answer = match_question(query, KNOWLEDGE_ENTRIES)
-#     return {
-#         "tool": "knowledge_search",
-#         "query": query,
-#         "answer": kb_answer,
-#     }
 
 
 @app.on_event("startup")
@@ -975,61 +922,57 @@ def detect_cold_start(sql_ms, kb_ms, ai_ms, total_ms):
     return "✓ warm"
 
     
-    # =============================================================
-    # 🖼 IMAGE
-    # =============================================================
-    if is_image_request(question):
-        return handle_image_intent(session_id, question)
-        
-    # =============================================================
-    # 🔍 SEARCH
-    # =============================================================
-    if intent == "search":
-        intent = "text"
+# =============================================================
+# 🖼 IMAGE
+# =============================================================
+if is_image_request(question):
+    return handle_image_intent(session_id, question)
 
-    # -----------------------------
-    # 💬 TEXT
-    # -----------------------------
-    conn = get_db_conn()
-    _, history = get_history_for_model(conn, session_id)
-    conn.close()
+# =============================================================
+# 🔍 SEARCH
+# =============================================================
+# Search-logica zit NU in ask_handler.py
+# main.py doet hier niets meer mee
+# (hooguit intent normaliseren)
 
-    from search.web_context import build_web_context
+if intent == "search":
+    intent = "text"
 
-    web_results = run_websearch_internal(question)
-    web_context = build_web_context(web_results)
+# =============================================================
+# 💬 TEXT (FALLBACK)
+# =============================================================
+conn = get_db_conn()
+_, history = get_history_for_model(conn, session_id)
+conn.close()
 
-    hints = {
-       "time_context": time_context,
-        "web_context": web_context
-    }
-    
-    # hints["time_hint"] = build_llm_time_hint()
+from search.web_context import build_web_context
 
-    if user and user.get("first_name"):
-        hints["user_name"] = user["first_name"]
+web_results = run_websearch_internal(question)
+web_context = build_web_context(web_results)
 
-    final_answer, _ = call_yellowmind_llm(
-        question=question,
-        language=language,
-        kb_answer=None,
-        sql_match=None,
-        hints=hints,
-        history=history
-    )
+hints = {
+    "time_context": time_context,
+    "web_context": web_context
+}
 
-    if not final_answer:
-        final_answer = "⚠️ Ik kreeg geen inhoudelijk antwoord terug, maar de chat werkt wel 🙂"
+if user and user.get("first_name"):
+    hints["user_name"] = user["first_name"]
 
-    store_message_pair(session_id, question, final_answer)
+final_answer, _ = call_yellowmind_llm(
+    question=question,
+    language=language,
+    kb_answer=None,
+    sql_match=None,
+    hints=hints,
+    history=history
+)
 
-    return {
-        "type": "text",
-        "answer": final_answer
-    }
+if not final_answer:
+    final_answer = "⚠️ Ik kreeg geen inhoudelijk antwoord terug, maar de chat werkt wel 🙂"
 
+store_message_pair(session_id, question, final_answer)
 
-
-
-   
-
+return {
+    "type": "text",
+    "answer": final_answer
+}

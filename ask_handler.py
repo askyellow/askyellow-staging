@@ -131,20 +131,45 @@ async def ask(request: Request):
             }
         )
 
+    # =============================================================
+    # 💬 TEXT (FALLBACK)
+    # =============================================================
+    conn = get_db_conn()
+    _, history = get_history_for_model(conn, session_id)
+    conn.close()
 
+    from search.web_context import build_web_context
 
+    web_results = run_websearch_internal(question)
+    web_context = build_web_context(web_results)
 
-        # ----------------------------------
-        # SEARCH algemene fallback
-        # ----------------------------------
-    #     answer = "Ik help je zo goed mogelijk verder 😊"
-    #     store_message_pair(session_id, question, answer)
-    #     return _response(
-    #     type_="text",
-    #     answer=answer,
-    #     intent=intent,
-    #     mode=mode
-    # )   
+    hints = {
+        "time_context": time_context,
+        "web_context": web_context
+    }
+
+    if user and user.get("first_name"):
+        hints["user_name"] = user["first_name"]
+
+    final_answer, _ = call_yellowmind_llm(
+        question=question,
+        language=language,
+        kb_answer=None,
+        sql_match=None,
+        hints=hints,
+        history=history
+    )
+
+    if not final_answer:
+        final_answer = "⚠️ Ik kreeg geen inhoudelijk antwoord terug, maar de chat werkt wel 🙂"
+
+    store_message_pair(session_id, question, final_answer)
+
+    return {
+        "type": "text",
+        "answer": final_answer
+    }
+
 
 # =============================================================
 # HELPERS
