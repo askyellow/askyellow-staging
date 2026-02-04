@@ -8,7 +8,6 @@ from chat_shared import store_message_pair
 from category import detect_category
 from specificity import detect_specificity
 
-specificity = detect_specificity(question)
 
 router = APIRouter()
 time_context = build_time_context()
@@ -43,6 +42,7 @@ async def ask(request: Request):
 
     intent = detect_intent(question)
     category = detect_category(question)
+    specificity = detect_specificity(question)
 
     # -----------------------------
     # TIME SHORTCUT
