@@ -1,7 +1,7 @@
 # app/services/websearch_core.py
 import os
 from fastapi import APIRouter, HTTPException
-from app.services.websearch_core import run_serper_search
+from websearch import run_serper_search
 
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 
