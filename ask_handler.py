@@ -34,6 +34,7 @@ async def ask(request: Request):
     # INTENT
     # -----------------------------
     intent = detect_intent(question)
+    mode = "search" if intent == "product" else "chat"
 
     # -----------------------------
     # TIME SHORTCUT
