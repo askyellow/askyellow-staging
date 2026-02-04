@@ -123,17 +123,17 @@ async def ask(request: Request):
             )
 
         # 3️⃣ 🔥 NIEUW: specificatie-antwoord (zoals "een gewone")
-    # → nieuwe search
-    answer = (
-        "Top, ik ga nu zoeken met deze voorkeur 👍"
-    )
-    store_message_pair(session_id, question, answer)
-    return _response(
-        type_="search",
-        answer=answer,
-        intent=intent,
-        mode=mode
-    )
+        # → nieuwe search
+        answer = (
+            "Top, ik ga nu zoeken met deze voorkeur 👍"
+        )
+        store_message_pair(session_id, question, answer)
+        return _response(
+            type_="search",
+            answer=answer,
+            intent=intent,
+            mode=mode
+        )
 
     # ----------------------------------
     # SEARCH fallback: product zonder categorie
