@@ -4,7 +4,7 @@ from db import get_db_conn
 from chat_shared import get_auth_user_from_session
 from intent import detect_intent
 from core.time_context import build_time_context
-from chat_storage import store_message_pair
+from chat_shared import store_message_pair
 
 router = APIRouter()
 time_context = build_time_context()
