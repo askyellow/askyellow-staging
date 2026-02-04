@@ -89,6 +89,28 @@ async def ask(request: Request):
                     intent=intent,
                     mode=mode
                 )
+    
+    # ----------------------------------
+    # SEARCH fallback: product zonder categorie
+    # ----------------------------------
+    if mode == "search" and category is None:
+        answer = (
+            "Ik kan je helpen bij het kiezen 😊 "
+            "Kun je aangeven waar je het product voor wilt gebruiken "
+            "of waar je op wilt letten?"
+        )
+
+        store_message_pair(session_id, question, answer)
+
+        return _response(
+            type_="search",
+            answer=answer,
+            intent=intent,
+            mode=mode
+        )
+    # ----------------------------------
+    # SEARCH algemene fallback
+    # ----------------------------------
     answer = "Ik help je zo goed mogelijk verder 😊"
     store_message_pair(session_id, question, answer)
     return _response(
