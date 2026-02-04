@@ -6,6 +6,9 @@ from intent import detect_intent
 from core.time_context import build_time_context
 from chat_shared import store_message_pair
 from category import detect_category
+from specificity import detect_specificity
+
+specificity = detect_specificity(question)
 
 router = APIRouter()
 time_context = build_time_context()
@@ -67,7 +70,7 @@ async def ask(request: Request):
         answer = "Ik kan je helpen kiezen. Kun je iets meer vertellen over wat je zoekt?"
     else:
         answer = "Ik help je zo goed mogelijk verder 😊"
-
+    
     store_message_pair(session_id, question, answer)
 
     return _response(
