@@ -8,6 +8,7 @@ from chat_shared import store_message_pair
 from category import detect_category
 from specificity import detect_specificity
 from search_questions import get_search_questions
+from search_followup import interpret_search_followup
 
 
 router = APIRouter()
@@ -65,7 +66,7 @@ async def ask(request: Request):
         mode = "search" if intent == "product" else "chat"
 
     # -----------------------------
-    # PLACEHOLDERS (tijdelijk)
+    # SEARCH modules AI
     # -----------------------------
     if mode == "search" and specificity == "low":
         questions = get_search_questions(category)
@@ -81,7 +82,10 @@ async def ask(request: Request):
         )
         
     if mode == "search" and specificity == "high":
-        answer = "Ik heb genoeg info om verder te helpen."
+        answer = (
+        "Ik heb alvast een aantal opties voor je geselecteerd. "
+        "Is dit voldoende, of zal ik verder voor je zoeken?"
+    )        
         store_message_pair(session_id, question, answer)
         return _response(
                     type_="search",
@@ -90,6 +94,32 @@ async def ask(request: Request):
                     mode=mode
                 )
     
+    # ----------------------------------
+    # FOLLOW-UP OP VERKOPERSVRAAG
+    # ----------------------------------
+    if mode == "search" and specificity == "high":
+        followup = interpret_search_followup(question)
+
+        if followup == "accept":
+            answer = "Top! Dan laat ik deze opties voor je staan 👍"
+            store_message_pair(session_id, question, answer)
+            return _response(
+                type_="search",
+                answer=answer,
+                intent=intent,
+                mode=mode
+            )
+
+        if followup == "refine":
+            answer = "Helder 🙂 Waar zal ik extra op letten bij het verder zoeken?"
+            store_message_pair(session_id, question, answer)
+            return _response(
+                type_="search",
+                answer=answer,
+                intent=intent,
+                mode=mode
+            )
+
     # ----------------------------------
     # SEARCH fallback: product zonder categorie
     # ----------------------------------
