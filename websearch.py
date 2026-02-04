@@ -1,13 +1,17 @@
 # app/services/websearch_core.py
 import os
+import requests
 from fastapi import APIRouter, HTTPException
-from websearch import run_serper_search
-
-SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 
 router = APIRouter()
 
-def run_serper_search(query: str):
+SERPER_API_KEY = os.getenv("SERPER_API_KEY")
+
+# =====================================================
+# INTERNE FUNCTIE (voor ask_handler / services)
+# =====================================================
+
+def do_websearch(query: str):
     query = (query or "").strip()
     if not query:
         return []
@@ -35,6 +39,11 @@ def run_serper_search(query: str):
 
     return results
 
+
+# =====================================================
+# HTTP TOOL ENDPOINT (blijft bestaan)
+# =====================================================
+
 @router.post("/tool/websearch")
 async def tool_websearch(payload: dict):
     query = (payload.get("query") or "").strip()
@@ -42,7 +51,7 @@ async def tool_websearch(payload: dict):
         raise HTTPException(status_code=400, detail="Query missing")
 
     try:
-        results = run_serper_search(query)
+        results = do_websearch(query)
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:

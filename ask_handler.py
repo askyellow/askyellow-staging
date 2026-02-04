@@ -12,6 +12,8 @@ from search_followup import interpret_search_followup
 from websearch import tool_websearch
 from affiliate_search import do_affiliate_search
 from websearch import run_serper_search
+from websearch import do_websearch
+
 
 
 router = APIRouter()
@@ -59,7 +61,7 @@ async def ask(request: Request):
     # 🔑 OPTELSOM MAKEN
     history = prev_history + [question]
     search_query = " ".join(history)
-    web_results = await tool_websearch(search_query)
+    web_results = do_websearch(search_query)
     affiliate_results = await do_affiliate_search(search_query)
 
 
