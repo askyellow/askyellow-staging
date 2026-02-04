@@ -55,6 +55,9 @@ async def ask(request: Request):
 
     # 🔑 OPTELSOM MAKEN
     history = prev_history + [question]
+    search_query = " ".join(history)
+    web_results = do_web_search(search_query)
+    affiliate_results = do_affiliate_search(search_query)
 
 
     # -----------------------------
