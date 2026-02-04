@@ -7,6 +7,7 @@ from core.time_context import build_time_context
 from chat_shared import store_message_pair
 from category import detect_category
 from specificity import detect_specificity
+from search_questions import get_search_questions
 
 
 router = APIRouter()
@@ -66,10 +67,10 @@ async def ask(request: Request):
     # -----------------------------
     # PLACEHOLDERS (tijdelijk)
     # -----------------------------
-    if mode == "search":
-        answer = "Ik kan je helpen kiezen. Kun je iets meer vertellen over wat je zoekt?"
-    else:
-        answer = "Ik help je zo goed mogelijk verder 😊"
+    if mode == "search" and specificity == "low":
+        questions = get_search_questions(category)
+        answer = " ".join(questions[:2])
+
     
     store_message_pair(session_id, question, answer)
 
