@@ -9,7 +9,7 @@ from category import detect_category
 from specificity import detect_specificity
 from search_questions import get_search_questions
 from search_followup import interpret_search_followup
-
+from websearch import tool_websearch
 
 router = APIRouter()
 time_context = build_time_context()
@@ -56,7 +56,7 @@ async def ask(request: Request):
     # 🔑 OPTELSOM MAKEN
     history = prev_history + [question]
     search_query = " ".join(history)
-    web_results = do_web_search(search_query)
+    web_results = tool_websearch(search_query)
     affiliate_results = do_affiliate_search(search_query)
 
 
