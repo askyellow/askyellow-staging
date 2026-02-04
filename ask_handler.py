@@ -10,7 +10,7 @@ from specificity import detect_specificity
 from search_questions import get_search_questions
 from search_followup import interpret_search_followup
 from websearch import tool_websearch
-from app.services.affiliate_search import do_affiliate_search
+from affiliate_search import do_affiliate_search
 
 router = APIRouter()
 time_context = build_time_context()
