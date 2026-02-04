@@ -159,12 +159,16 @@ def _is_time_question(question: str) -> bool:
     return any(k in q for k in TIME_KEYWORDS)
 
 
-def _response(type_: str, answer: str, intent: str, mode: str | None = None):
-    return {
+def _response(type_, answer, intent=None, mode=None, meta=None):
+    response = {
         "type": type_,
         "answer": answer,
-        "meta": {
-            "intent": intent,
-            "mode": mode
-        }
+        "intent": intent,
+        "mode": mode,
     }
+
+    if meta:
+        response["meta"] = meta
+
+    return response
+
