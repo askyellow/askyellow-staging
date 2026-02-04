@@ -100,6 +100,7 @@ async def ask(request: Request):
     if mode == "search" and specificity == "high":
         followup = interpret_search_followup(question)
 
+        # 1️⃣ Gebruiker zegt: dit is genoeg
         if followup == "accept":
             answer = "Top! Dan laat ik deze opties voor je staan 👍"
             store_message_pair(session_id, question, answer)
@@ -110,6 +111,7 @@ async def ask(request: Request):
                 mode=mode
             )
 
+        # 2️⃣ Gebruiker wil verder zoeken
         if followup == "refine":
             answer = "Helder 🙂 Waar zal ik extra op letten bij het verder zoeken?"
             store_message_pair(session_id, question, answer)
@@ -119,6 +121,19 @@ async def ask(request: Request):
                 intent=intent,
                 mode=mode
             )
+
+        # 3️⃣ 🔥 NIEUW: specificatie-antwoord (zoals "een gewone")
+    # → nieuwe search
+    answer = (
+        "Top, ik ga nu zoeken met deze voorkeur 👍"
+    )
+    store_message_pair(session_id, question, answer)
+    return _response(
+        type_="search",
+        answer=answer,
+        intent=intent,
+        mode=mode
+    )
 
     # ----------------------------------
     # SEARCH fallback: product zonder categorie
