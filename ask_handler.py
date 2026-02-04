@@ -65,44 +65,18 @@ async def ask(request: Request):
     if not mode:
         mode = "search" if intent == "product" else "chat"
 
-    # -----------------------------
-    # SEARCH modules AI
-    # -----------------------------
-    if mode == "search" and specificity == "low":
-        questions = get_search_questions(category)
-        answer = " ".join(questions[:2])
-
-        store_message_pair(session_id, question, answer)
-
-        return _response(
-            type_="search",
-            answer=answer,
-            intent=intent,
-            mode=mode
-        )
-        
-    if mode == "search" and specificity == "high":
-        answer = (
-        "Ik heb alvast een aantal opties voor je geselecteerd. "
-        "Is dit voldoende, of zal ik verder voor je zoeken?"
-    )        
-        store_message_pair(session_id, question, answer)
-        return _response(
-                    type_="search",
-                    answer=answer,
-                    intent=intent,
-                    mode=mode
-                )
-    
     # ----------------------------------
-    # FOLLOW-UP OP VERKOPERSVRAAG
+    # SEARCH FLOW
     # ----------------------------------
-    if mode == "search" and specificity == "high":
-        followup = interpret_search_followup(question)
+    if mode == "search":
 
-        # 1️⃣ Gebruiker zegt: dit is genoeg
-        if followup == "accept":
-            answer = "Top! Dan laat ik deze opties voor je staan 👍"
+        # 1️⃣ Geen categorie → generieke verduidelijking
+        if category is None:
+            answer = (
+                "Ik kan je helpen bij het kiezen 😊 "
+                "Kun je aangeven waar je het product voor wilt gebruiken "
+                "of waar je op wilt letten?"
+            )
             store_message_pair(session_id, question, answer)
             return _response(
                 type_="search",
@@ -111,9 +85,10 @@ async def ask(request: Request):
                 mode=mode
             )
 
-        # 2️⃣ Gebruiker wil verder zoeken
-        if followup == "refine":
-            answer = "Helder 🙂 Waar zal ik extra op letten bij het verder zoeken?"
+        # 2️⃣ Lage specificiteit → vervolgvragen stellen
+        if specificity == "low":
+            questions = get_search_questions(category)
+            answer = " ".join(questions[:2])
             store_message_pair(session_id, question, answer)
             return _response(
                 type_="search",
@@ -122,37 +97,28 @@ async def ask(request: Request):
                 mode=mode
             )
 
-        # 3️⃣ 🔥 NIEUW: specificatie-antwoord (zoals "een gewone")
-        # → nieuwe search
-        answer = (
-            "Top, ik ga nu zoeken met deze voorkeur 👍"
-        )
-        store_message_pair(session_id, question, answer)
-        return _response(
-            type_="search",
-            answer=answer,
-            intent=intent,
-            mode=mode
-        )
+        # 3️⃣ Hoge specificiteit → vervolg van gesprek
+        if specificity == "high":
+            followup = interpret_search_followup(question)
 
-    # ----------------------------------
-    # SEARCH fallback: product zonder categorie
-    # ----------------------------------
-    if mode == "search" and category is None:
-        answer = (
-            "Ik kan je helpen bij het kiezen 😊 "
-            "Kun je aangeven waar je het product voor wilt gebruiken "
-            "of waar je op wilt letten?"
-        )
+            if followup == "accept":
+                answer = "Top! Dan laat ik deze opties voor je staan 👍"
 
-        store_message_pair(session_id, question, answer)
+            elif followup == "refine":
+                answer = "Helder 🙂 Ik ga verder zoeken met je voorkeuren."
 
-        return _response(
-            type_="search",
-            answer=answer,
-            intent=intent,
-            mode=mode
-        )
+            else:
+                answer = "Helder, ik ga nu verder zoeken met deze informatie 👍"
+
+            store_message_pair(session_id, question, answer)
+            return _response(
+                type_="search",
+                answer=answer,
+                intent=intent,
+                mode=mode
+            )
+
+
     # ----------------------------------
     # SEARCH algemene fallback
     # ----------------------------------
