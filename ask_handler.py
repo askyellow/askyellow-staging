@@ -26,6 +26,10 @@ async def ask(request: Request):
     session_id = payload.get("session_id")
     language = payload.get("language", "nl")
 
+    prev_context = payload.get("meta", {}).get("search_context", {})
+    prev_category = prev_context.get("category")
+    prev_history = prev_context.get("history", [])
+
     if not question:
         raise HTTPException(status_code=400, detail="Missing question")
 
@@ -42,9 +46,16 @@ async def ask(request: Request):
     intent = detect_intent(question)
     mode = "search" if intent == "product" else "chat"
 
-    intent = detect_intent(question)
     category = detect_category(question)
     specificity = detect_specificity(question)
+
+    # 🔑 CATEGORY PLAKKEN AAN LOPENDE SEARCH
+    if mode == "search" and category is None and prev_category:
+        category = prev_category
+
+    # 🔑 OPTELSOM MAKEN
+    history = prev_history + [question]
+
 
     # -----------------------------
     # TIME SHORTCUT
@@ -70,7 +81,7 @@ async def ask(request: Request):
     # ----------------------------------
     if mode == "search":
 
-        # 1️⃣ Geen categorie → generieke verduidelijking
+        # 1️⃣ Geen categorie (eerste vraag, of vaag product)
         if category is None:
             answer = (
                 "Ik kan je helpen bij het kiezen 😊 "
@@ -78,58 +89,86 @@ async def ask(request: Request):
                 "of waar je op wilt letten?"
             )
             store_message_pair(session_id, question, answer)
-            return _response(
-                type_="search",
-                answer=answer,
-                intent=intent,
-                mode=mode
+
+        return _response(
+            type_="search",
+            answer=answer,
+            intent=intent,
+            mode=mode,
+            meta={
+                "search_context": {
+                    "category": category,
+                    "history": history
+                }
+            }
             )
 
-        # 2️⃣ Lage specificiteit → vervolgvragen stellen
+        # 2️⃣ Lage specificiteit → vervolgvraag stellen
         if specificity == "low":
             questions = get_search_questions(category)
             answer = " ".join(questions[:2])
+
             store_message_pair(session_id, question, answer)
+
             return _response(
                 type_="search",
                 answer=answer,
                 intent=intent,
-                mode=mode
+                mode=mode,
+                meta={
+                    "search_context": {
+                        "category": category,
+                        "history": history
+                    }
+                }
             )
 
-        # 3️⃣ Hoge specificiteit → vervolg van gesprek
+        # 3️⃣ Hoge specificiteit → verder zoeken / verkoper-fase
         if specificity == "high":
             followup = interpret_search_followup(question)
 
+            # 3a️⃣ Gebruiker zegt: dit is genoeg
             if followup == "accept":
                 answer = "Top! Dan laat ik deze opties voor je staan 👍"
 
+            # 3b️⃣ Gebruiker wil verder zoeken
             elif followup == "refine":
                 answer = "Helder 🙂 Ik ga verder zoeken met je voorkeuren."
 
+            # 3c️⃣ Gebruiker vult gewoon iets in (zoals: “een gewone”)
             else:
-                answer = "Helder, ik ga nu verder zoeken met deze informatie 👍"
+                answer = (
+                    "Helder! Ik ga nu zoeken met alles wat je tot nu toe hebt aangegeven 👍"
+                )
 
             store_message_pair(session_id, question, answer)
+
             return _response(
                 type_="search",
                 answer=answer,
                 intent=intent,
-                mode=mode
+                mode=mode,
+                meta={
+                    "search_context": {
+                        "category": category,
+                        "history": history
+                    }
+                }
             )
 
 
-    # ----------------------------------
-    # SEARCH algemene fallback
-    # ----------------------------------
-    answer = "Ik help je zo goed mogelijk verder 😊"
-    store_message_pair(session_id, question, answer)
-    return _response(
-    type_="text",
-    answer=answer,
-    intent=intent,
-    mode=mode
-)   
+
+        # ----------------------------------
+        # SEARCH algemene fallback
+        # ----------------------------------
+        answer = "Ik help je zo goed mogelijk verder 😊"
+        store_message_pair(session_id, question, answer)
+        return _response(
+        type_="text",
+        answer=answer,
+        intent=intent,
+        mode=mode
+    )   
 
 # =============================================================
 # HELPERS
