@@ -81,14 +81,39 @@ async def ask(request: Request):
     # ----------------------------------
     if mode == "search":
 
-        # 1️⃣ Geen categorie (eerste vraag, of vaag product)
+        # 1️⃣ Geen categorie
         if category is None:
             answer = (
                 "Ik kan je helpen bij het kiezen 😊 "
                 "Kun je aangeven waar je het product voor wilt gebruiken "
                 "of waar je op wilt letten?"
             )
-            store_message_pair(session_id, question, answer)
+
+        # 2️⃣ Lage specificiteit
+        elif specificity == "low":
+            questions = get_search_questions(category)
+            answer = " ".join(questions[:2])
+
+        # 3️⃣ Hoge specificiteit
+        elif specificity == "high":
+            followup = interpret_search_followup(question)
+
+            if followup == "accept":
+                answer = "Top! Dan laat ik deze opties voor je staan 👍"
+            elif followup == "refine":
+                answer = "Helder 🙂 Ik ga verder zoeken met je voorkeuren."
+            else:
+                answer = (
+                    "Helder! Ik ga nu zoeken met alles wat je tot nu toe hebt aangegeven 👍"
+                )
+
+        # 4️⃣ 🔒 VEILIGE FALLBACK (DIT ONTBRAK)
+        else:
+            answer = (
+                "Helder, ik kijk even verder met wat je hebt aangegeven 👍"
+            )
+
+        store_message_pair(session_id, question, answer)
 
         return _response(
             type_="search",
@@ -101,74 +126,22 @@ async def ask(request: Request):
                     "history": history
                 }
             }
-            )
+        )
 
-        # 2️⃣ Lage specificiteit → vervolgvraag stellen
-    if specificity == "low":
-            questions = get_search_questions(category)
-            answer = " ".join(questions[:2])
-
-            store_message_pair(session_id, question, answer)
-
-            return _response(
-                type_="search",
-                answer=answer,
-                intent=intent,
-                mode=mode,
-                meta={
-                    "search_context": {
-                        "category": category,
-                        "history": history
-                    }
-                }
-            )
-
-        # 3️⃣ Hoge specificiteit → verder zoeken / verkoper-fase
-    if specificity == "high":
-            followup = interpret_search_followup(question)
-
-            # 3a️⃣ Gebruiker zegt: dit is genoeg
-            if followup == "accept":
-                answer = "Top! Dan laat ik deze opties voor je staan 👍"
-
-            # 3b️⃣ Gebruiker wil verder zoeken
-            elif followup == "refine":
-                answer = "Helder 🙂 Ik ga verder zoeken met je voorkeuren."
-
-            # 3c️⃣ Gebruiker vult gewoon iets in (zoals: “een gewone”)
-            else:
-                answer = (
-                    "Helder! Ik ga nu zoeken met alles wat je tot nu toe hebt aangegeven 👍"
-                )
-
-            store_message_pair(session_id, question, answer)
-
-            return _response(
-                type_="search",
-                answer=answer,
-                intent=intent,
-                mode=mode,
-                meta={
-                    "search_context": {
-                        "category": category,
-                        "history": history
-                    }
-                }
-            )
 
 
 
         # ----------------------------------
         # SEARCH algemene fallback
         # ----------------------------------
-    answer = "Ik help je zo goed mogelijk verder 😊"
-    store_message_pair(session_id, question, answer)
-    return _response(
-    type_="text",
-    answer=answer,
-    intent=intent,
-    mode=mode
-)   
+    #     answer = "Ik help je zo goed mogelijk verder 😊"
+    #     store_message_pair(session_id, question, answer)
+    #     return _response(
+    #     type_="text",
+    #     answer=answer,
+    #     intent=intent,
+    #     mode=mode
+    # )   
 
 # =============================================================
 # HELPERS
