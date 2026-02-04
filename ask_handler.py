@@ -5,6 +5,7 @@ from chat_shared import get_auth_user_from_session
 from intent import detect_intent
 from core.time_context import build_time_context
 from chat_shared import store_message_pair
+from category import detect_category
 
 router = APIRouter()
 time_context = build_time_context()
@@ -36,6 +37,9 @@ async def ask(request: Request):
     # -----------------------------
     intent = detect_intent(question)
     mode = "search" if intent == "product" else "chat"
+
+    intent = detect_intent(question)
+    category = detect_category(question)
 
     # -----------------------------
     # TIME SHORTCUT
