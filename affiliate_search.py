@@ -1,11 +1,18 @@
 # app/services/affiliate_search.py
 from typing import List, Dict, Any
+import logging
+
+logger = logging.getLogger(__name__)
 
 async def do_affiliate_search(search_query: str) -> List[Dict[str, Any]]:
-    if "stofzuiger" not in search_query.lower():
-        return []
+    logger.info(
+        "[AFFILIATE_SEARCH] start",
+        extra={
+            "search_query": search_query
+        }
+    )
 
-    return [
+    results = [
         {
             "product_id": "bol_123",
             "title": "Philips Steelstofzuiger 3000 Series",
@@ -34,3 +41,12 @@ async def do_affiliate_search(search_query: str) -> List[Dict[str, Any]]:
             "product_url": "https://www.bol.com/nl/p/rowenta-xpert"
         }
     ]
+    logger.info(
+            "[AFFILIATE_SEARCH] done",
+            extra={
+                "search_query": search_query,
+                "result_count": len(results)
+            }
+        )
+
+    return results
