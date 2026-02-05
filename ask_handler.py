@@ -276,10 +276,11 @@ Geef alleen de vervolgvraag.
 """.strip()
 
     answer, _ = call_yellowmind_llm(
-        question=prompt,
-        language="nl",
-        history=[],
-        hints={"mode": "search_followup"},
-    )
-
+    question=prompt,
+    language="nl",
+    kb_answer=None,
+    sql_match=None,
+    history=[],
+    hints={"mode": "search_followup"},
+)
     return (answer or "").strip()
