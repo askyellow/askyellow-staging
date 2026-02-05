@@ -4,10 +4,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-async def do_affiliate_search(search_query: str) -> List[Dict[str, Any]]:
+async def do_affiliate_search(
+    search_query: str,
+    session_id: str | None = None
+) -> List[Dict[str, Any]]:
+
     logger.info(
         "[AFFILIATE_SEARCH] start",
         extra={
+            "session_id": session_id,
             "search_query": search_query
         }
     )
@@ -44,9 +49,8 @@ async def do_affiliate_search(search_query: str) -> List[Dict[str, Any]]:
     logger.info(
             "[AFFILIATE_SEARCH] done",
             extra={
+                "session_id": session_id,
                 "search_query": search_query,
                 "result_count": len(results)
             }
         )
-
-    return results
