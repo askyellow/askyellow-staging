@@ -32,6 +32,7 @@ async def ask(request: Request):
     session_id = payload.get("session_id")
     language = payload.get("language", "nl")
     mode = payload.get("mode")  # frontend mag dit sturen
+    search_ready = payload.get("search_ready", False)
 
     if not question:
         raise HTTPException(status_code=400, detail="Missing question")
