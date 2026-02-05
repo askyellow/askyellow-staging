@@ -82,7 +82,15 @@ async def ask(request: Request):
         # 2️⃣ Lage specificiteit → gerichte vervolgvraag
         elif specificity in ("low", "medium"):
             questions = get_search_questions(category)
-            answer = " ".join(questions[:2])
+
+            if questions:
+                answer = " ".join(questions[:2])
+            else:
+                answer = (
+                    "Kun je iets meer vertellen over wat je zoekt? "
+                    "Bijvoorbeeld waar je het voor wilt gebruiken 😊"
+                )
+
 
         elif specificity == "high":
             followup = interpret_search_followup(question)
