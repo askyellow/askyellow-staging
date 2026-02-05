@@ -85,7 +85,7 @@ async def ask(request: Request):
             answer = " ".join(questions[:2])
 
         # 3️⃣ Hoge specificiteit → ECHT zoeken
-        elif specificity == "high":
+        elif specificity in ("medium", "high"):
             followup = interpret_search_followup(question)
 
             # 🔍 Zoekopdracht uitvoeren (frontend heeft query al opgebouwd)
