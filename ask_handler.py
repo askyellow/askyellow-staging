@@ -80,15 +80,13 @@ async def ask(request: Request):
             )
 
         # 2️⃣ Lage specificiteit → gerichte vervolgvraag
-        elif specificity == "low":
+        elif specificity in ("low", "medium"):
             questions = get_search_questions(category)
             answer = " ".join(questions[:2])
 
-        # 3️⃣ Hoge specificiteit → ECHT zoeken
-        elif specificity in ("medium", "high"):
+        elif specificity == "high":
             followup = interpret_search_followup(question)
 
-            # 🔍 Zoekopdracht uitvoeren (frontend heeft query al opgebouwd)
             web_results = do_websearch(question)
             affiliate_results = await do_affiliate_search(question)
 
@@ -98,6 +96,7 @@ async def ask(request: Request):
                 answer = "Helder 🙂 Ik ga verder zoeken met je voorkeuren."
             else:
                 answer = "Ik heb een aantal goede opties voor je gevonden 👇"
+
 
         # 4️⃣ Veilige fallback (mag nooit leeg zijn)
         else:
