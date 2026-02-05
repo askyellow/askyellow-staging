@@ -81,12 +81,17 @@ async def ask(request: Request):
             )
 
         # 🔹 GENOEG INFO → ZOEKEN
-        elif specificity == "high":
+        elif specificity == "high" and search_ready:
             web_results = do_websearch(question)
             affiliate_results = await do_affiliate_search(question)
-
             answer = "Ik heb een aantal goede opties voor je gevonden 👇"
 
+        elif specificity == "high" and not search_ready:
+            answer = ai_search_followup(
+                user_input=question,
+                search_query=question
+            )
+ 
         store_message_pair(session_id, question, answer)
 
         return _response(
