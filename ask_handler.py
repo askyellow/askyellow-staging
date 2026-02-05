@@ -86,10 +86,18 @@ async def ask(request: Request):
             if questions:
                 answer = " ".join(questions[:2])
             else:
+                # Gebruik de (samengestelde) zoekterm van de gebruiker, zonder hardcoding
+                term = question.strip()
+                # optioneel: maak 'm niet te lang
+                if len(term) > 60:
+                    term = term[:57] + "..."
+
                 answer = (
-                    "Kun je iets meer vertellen over wat je zoekt? "
-                    "Bijvoorbeeld waar je het voor wilt gebruiken 😊"
+                    f"Ik begrijp dat je zoekt naar: **{term}** 😊\n\n"
+                    "Kun je iets meer info geven, zodat ik gerichter kan zoeken? "
+                    "Bijvoorbeeld: budget, formaat, gebruik (gamen/films), of belangrijke eisen."
                 )
+
 
 
         elif specificity == "high":
