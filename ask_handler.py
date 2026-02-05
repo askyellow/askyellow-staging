@@ -75,7 +75,10 @@ async def ask(request: Request):
 
         # 🔹 NOG NIET GENOEG INFO → AI VRAAGT DOOR
         if specificity in ("low", "medium"):
-            answer = ai_search_followup(question)
+            answer = ai_search_followup(
+                user_input=question,
+                search_query=question  # ⚠️ dit is al de samengestelde query uit frontend
+            )
 
         # 🔹 GENOEG INFO → ZOEKEN
         elif specificity == "high":
@@ -246,41 +249,38 @@ def detect_specificity(query: str) -> str:
         return "medium"
     return "high"
 
-def ai_search_followup(question: str) -> str:
-    """
-    Laat de AI exact 1 vervolgvraag stellen om de zoekvraag te verduidelijken.
-    Geen vaste zinnen, geen uitleg.
-    """
-
+def ai_search_followup(user_input: str, search_query: str) -> str:
     prompt = f"""
 Je bent YellowMind, een behulpzame maar nuchtere zoekassistent.
 
-De gebruiker wil een product vinden, maar heeft nog te weinig details gegeven
-om goede zoekresultaten te tonen.
+Dit is een vervolgstap in dezelfde productzoektocht.
+De gebruiker bouwt zijn zoekvraag stap voor stap op.
 
-Gebruikersvraag:
-"{question}"
+Huidige zoekcontext (samengevat):
+"{search_query}"
+
+Laatste antwoord van de gebruiker:
+"{user_input}"
 
 Je taak:
 - Stel EXACT 1 korte, natuurlijke vervolgvraag
-- Gebruik woorden of context uit de gebruikersvraag
-- Vraag alleen naar informatie die helpt om gerichter te zoeken
-  (zoals gebruik, budget, formaat, voorkeuren, situatie)
-- Wees concreet, niet algemeen
+- Ga logisch verder op basis van de zoekcontext
+- Gebruik wat de gebruiker al heeft aangegeven (zoals budget, gebruik, voorkeuren)
+- Vraag NIET opnieuw naar iets dat al duidelijk is
 - Geen lijstjes
 - Geen uitleg
-- Geen herhaling van vaste zinnen
 - Geen begroeting of afsluiting
 
 Geef alleen de vervolgvraag.
 """.strip()
 
     answer, _ = call_yellowmind_llm(
-    question=prompt,
-    language="nl",
-    kb_answer=None,
-    sql_match=None,
-    history=[],
-    hints={"mode": "search_followup"},
-)
+        question=prompt,
+        language="nl",
+        kb_answer=None,
+        sql_match=None,
+        history=[],
+        hints={"mode": "search_followup"},
+    )
+
     return (answer or "").strip()
