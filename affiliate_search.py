@@ -5,6 +5,8 @@ from bol_client import BolClient
 import os
 
 from affiliate_mock import load_mock_affiliate_products
+logger = logging.getLogger(__name__)
+
 
 USE_BOL_API = False  # 🔥 NU HARD UIT
 
@@ -21,7 +23,6 @@ async def do_affiliate_search(search_query: str, session_id: str | None = None):
 
 
 
-# logger = logging.getLogger(__name__)
 
 # bol_client = BolClient(
 # client_id=os.getenv("BOL_API_KEY"),
