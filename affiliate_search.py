@@ -6,13 +6,6 @@ import os
 
 from affiliate_mock import load_mock_affiliate_products
 
-# DUMMY
-@router.post("/lead/search")
-async def log_lead_search(payload: dict):
-    return {"status": "ok"}
-# einde dummy
-
-
 async def do_affiliate_search(
     search_query: str,
     session_id: str | None = None
@@ -78,3 +71,4 @@ async def do_affiliate_search(
     )
 
     return results
+
