@@ -23,6 +23,7 @@ time_context = build_time_context()
 # =============================================================
 # ASK ENDPOINT
 # =============================================================
+logger.warning("🔥 ASK_HANDLER VERSION XYZ LOADED 🔥")
 
 @router.post("/ask")
 async def ask(request: Request):
