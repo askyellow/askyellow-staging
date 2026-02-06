@@ -6,9 +6,7 @@ import os
 
 from affiliate_mock import load_mock_affiliate_products
 
-
-
-import os
+USE_BOL_API = False  # 🔥 NU HARD UIT
 
 async def do_affiliate_search(search_query: str, session_id: str | None = None):
 
