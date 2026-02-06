@@ -13,6 +13,9 @@ from search_followup import interpret_search_followup
 from websearch import do_websearch
 from affiliate_search import do_affiliate_search
 from llm import call_yellowmind_llm
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 time_context = build_time_context()
