@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 time_context = build_time_context()
+logging.basicConfig(level=logging.INFO)
 
 # =============================================================
 # ASK ENDPOINT
@@ -128,7 +129,7 @@ async def ask(request: Request):
             )
 
         # 🔹 GENOEG INFO → ZOEKEN
-        elif specificity == "high" and search_ready:
+        elif specificity == "high":
             logger.info(
                 "[SEARCH] executing searches",
                 extra={
@@ -163,14 +164,14 @@ async def ask(request: Request):
             answer = "Ik heb een aantal goede opties voor je gevonden 👇"
 
         # 🔹 SPECIFICITY HOOG MAAR SEARCH NOG NIET KLAAR
-        elif specificity == "high" and not search_ready:
-            logger.info(
-                "[SEARCH] followup",
-                extra={
-                    "session_id": session_id,
-                    "reason": "search_not_ready"
-                }
-            )
+        # elif specificity == "high" and not search_ready:
+        #     logger.info(
+        #         "[SEARCH] followup",
+        #         extra={
+        #             "session_id": session_id,
+        #             "reason": "search_not_ready"
+        #         }
+        #     )
 
             answer = ai_search_followup(
                 user_input=question,
