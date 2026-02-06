@@ -42,14 +42,7 @@ async def ask(request: Request):
     if not question:
         raise HTTPException(status_code=400, detail="Missing question")
 
-    logger.info(
-    "[ASK] incoming",
-    extra={
-        "session_id": session_id,
-        "mode": mode,
-        "intent": intent
-    }
-)
+
     # ---------------------------------------------------------
     # AUTH (chat-only relevant, maar licht genoeg om altijd te doen)
     # ---------------------------------------------------------
@@ -65,6 +58,14 @@ async def ask(request: Request):
     if not mode:
         mode = "search" if intent == "product" else "chat"
 
+        logger.info(
+    "[ASK] incoming",
+    extra={
+        "session_id": session_id,
+        "mode": mode,
+        "intent": intent
+    }
+    )
     # ---------------------------------------------------------
     # TIME SHORTCUT (globaal, los van search/chat)
     # ---------------------------------------------------------
@@ -81,7 +82,7 @@ async def ask(request: Request):
     # =========================================================
     # 🔍 SEARCH FLOW
     # =========================================================
-
+    
     # =========================================================
     # 🔍 SEARCH FLOW
     # =========================================================
