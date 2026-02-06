@@ -169,7 +169,7 @@ async def ask(request: Request):
         store_message_pair(session_id, question, answer)
 
         payload = {
-            "type": "search",
+            "type_": "search",
             "answer": answer,
             "intent": intent,
             "mode": "search"
@@ -240,7 +240,7 @@ async def ask(request: Request):
     store_message_pair(session_id, question, final_answer)
 
     return {
-        "type": "text",
+        "type_": "text",
         "answer": final_answer
     }
 
@@ -263,7 +263,7 @@ def _is_time_question(question: str) -> bool:
 
 def _response(type_, answer, intent=None, mode=None, meta=None):
     response = {
-        "type": type_,
+        "type_": type_,
         "answer": answer,
         "intent": intent,
         "mode": mode,
