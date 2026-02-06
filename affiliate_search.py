@@ -1,7 +1,7 @@
 # affiliate_search.py
 from typing import List, Dict, Any
 import logging
-from affiliate.bol_client import BolClient
+from bol_client import BolClient
 import os
 
 from affiliate_mock import load_mock_affiliate_products
