@@ -6,19 +6,22 @@ import os
 
 from affiliate_mock import load_mock_affiliate_products
 
-async def do_affiliate_search(
-    search_query: str,
-    session_id: str | None = None
-):
 
-    if not os.getenv("BOL_API_KEY"):
+
+import os
+
+async def do_affiliate_search(search_query: str, session_id: str | None = None):
+
+    if not os.getenv("BOL_API_KEY") or not os.getenv("BOL_API_SECRET"):
         logger.info(
-            "[AFFILIATE_SEARCH] using mock data",
+            "[AFFILIATE_SEARCH] bol api not available, using mock",
             extra={"session_id": session_id}
         )
         return load_mock_affiliate_products(search_query)
 
-    # later: echte bol.com call
+    # 👇 echte bol.com call (later)
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -71,4 +74,3 @@ async def do_affiliate_search(
     )
 
     return results
-
