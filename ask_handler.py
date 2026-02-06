@@ -95,73 +95,17 @@ async def ask(request: Request):
  
         store_message_pair(session_id, question, answer)
 
-        return _response(
-            type_="search",
-            answer=answer,
-            intent=intent,
-            mode="search"
-        )
+        payload = {
+            "type": "search",
+            "answer": answer,
+            "intent": intent,
+            "mode": "search",
+        }
 
-    # if mode == "search":
+        if specificity == "high" and search_ready:
+            payload["affiliate_results"] = affiliate_results
 
-    #     category = detect_category(question)
-    #     specificity = detect_specificity(question)
-
-    #     # 1️⃣ Geen categorie → begeleiden
-    #     if category is None:
-    #         answer = (
-    #             "Ik kan je helpen bij het kiezen 😊 "
-    #             "Kun je aangeven waar je het product voor wilt gebruiken "
-    #             "of waar je op wilt letten?"
-    #         )
-
-    #     # 2️⃣ Lage specificiteit → gerichte vervolgvraag
-    #     elif specificity in ("low", "medium"):
-    #         questions = get_search_questions(category)
-
-    #         if questions:
-    #             answer = " ".join(questions[:2])
-    #         else:
-    #             # Gebruik de (samengestelde) zoekterm van de gebruiker, zonder hardcoding
-    #             term = question.strip()
-    #             # optioneel: maak 'm niet te lang
-    #             if len(term) > 60:
-    #                 term = term[:57] + "..."
-
-    #             answer = (
-    #                 f"Ik begrijp dat je zoekt naar: **{term}** 😊\n\n"
-    #                 "Kun je iets meer info geven, zodat ik gerichter kan zoeken? "
-    #                 "Bijvoorbeeld: budget, formaat, gebruik (gamen/films), of belangrijke eisen."
-    #             )
-
-
-
-    #     elif specificity == "high":
-    #         followup = interpret_search_followup(question)
-
-    #         web_results = do_websearch(question)
-    #         affiliate_results = await do_affiliate_search(question)
-
-    #         if followup == "accept":
-    #             answer = "Top! Dan laat ik deze opties voor je staan 👍"
-    #         elif followup == "refine":
-    #             answer = "Helder 🙂 Ik ga verder zoeken met je voorkeuren."
-    #         else:
-    #             answer = "Ik heb een aantal goede opties voor je gevonden 👇"
-
-
-    #     # 4️⃣ Veilige fallback (mag nooit leeg zijn)
-    #     else:
-    #         answer = "Helder, ik kijk even verder met wat je hebt aangegeven 👍"
-
-    #     store_message_pair(session_id, question, answer)
-
-    #     return _response(
-    #         type_="search",
-    #         answer=answer,
-    #         intent=intent,
-    #         mode="search"
-    #     )
+        return _response(**payload)
 
     # =========================================================
     # 💬 CHAT FALLBACK (ONGEWIIJZIGD)
