@@ -96,7 +96,7 @@ async def ask(request: Request):
         store_message_pair(session_id, question, answer)
 
         payload = {
-            "type": "search",
+            "type_": "search",
             "answer": answer,
             "intent": intent,
             "mode": "search",
