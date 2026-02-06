@@ -28,6 +28,16 @@ time_context = build_time_context()
 async def ask(request: Request):
     payload = await request.json()
 
+    logger.info(
+    "[ASK] incoming",
+    extra={
+        "session_id": session_id,
+        "mode": mode,
+        "intent": intent
+    }
+)
+
+
     # ---------------------------------------------------------
     # BASIC INPUT
     # ---------------------------------------------------------
