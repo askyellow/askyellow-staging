@@ -42,14 +42,14 @@ async def ask(request: Request):
     if not question:
         raise HTTPException(status_code=400, detail="Missing question")
 
-        logger.info(
-        "[ASK] incoming",
-        extra={
-            "session_id": session_id,
-            "mode": mode,
-            "intent": intent
-        }
-    )
+    logger.info(
+    "[ASK] incoming",
+    extra={
+        "session_id": session_id,
+        "mode": mode,
+        "intent": intent
+    }
+)
     # ---------------------------------------------------------
     # AUTH (chat-only relevant, maar licht genoeg om altijd te doen)
     # ---------------------------------------------------------
