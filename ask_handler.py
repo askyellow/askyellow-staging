@@ -29,16 +29,7 @@ logger.warning("🔥 ASK_HANDLER VERSION XYZ LOADED 🔥")
 async def ask(request: Request):
     payload = await request.json()
 
-    logger.info(
-    "[ASK] incoming",
-    extra={
-        "session_id": session_id,
-        "mode": mode,
-        "intent": intent
-    }
-)
-
-
+    
     # ---------------------------------------------------------
     # BASIC INPUT
     # ---------------------------------------------------------
@@ -51,6 +42,14 @@ async def ask(request: Request):
     if not question:
         raise HTTPException(status_code=400, detail="Missing question")
 
+        logger.info(
+        "[ASK] incoming",
+        extra={
+            "session_id": session_id,
+            "mode": mode,
+            "intent": intent
+        }
+    )
     # ---------------------------------------------------------
     # AUTH (chat-only relevant, maar licht genoeg om altijd te doen)
     # ---------------------------------------------------------
