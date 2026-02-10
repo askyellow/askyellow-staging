@@ -279,7 +279,8 @@ def get_search_state(session_id):
         SEARCH_STATE[session_id] = {
             "constraints": {},
             "products": None,
-            "steps": 0
+            "steps": 0,
+            "pending_key": None
         }
     return SEARCH_STATE[session_id]
 
