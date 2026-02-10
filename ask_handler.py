@@ -13,6 +13,8 @@ from search_followup import interpret_search_followup
 from websearch import do_websearch
 from affiliate_search import do_affiliate_search
 from llm import call_yellowmind_llm
+from affiliate_mock import load_mock_affiliate_products
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -90,20 +92,10 @@ async def ask(request: Request):
 
     if mode == "search":
         return {
-            "answer": "Test affiliate render",
-            "affiliate_results": [
-                {
-                    "title": "Robotstofzuiger Test A",
-                    "price": 199,
-                    "url": "https://example.com"
-                },
-                {
-                    "title": "Robotstofzuiger Test B",
-                    "price": 179,
-                    "url": "https://example.com"
-                }
-            ]
+            "answer": "Ik heb een aantal goede opties voor je gevonden 👇",
+            "affiliate_results": load_mock_affiliate_products()
         }
+
 
     # if mode == "search":
 
