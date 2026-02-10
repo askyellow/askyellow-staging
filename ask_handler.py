@@ -83,109 +83,65 @@ async def ask(request: Request):
             mode=mode
         )
 
+   
     # =========================================================
     # 🔍 SEARCH FLOW
     # =========================================================
-    # =========================================================
-    # 🔍 SEARCH FLOW
-    # =========================================================
-
     if mode == "search":
 
         search_state = get_search_state(session_id)
+        constraints = search_state["constraints"]
 
+        # 1️⃣ laad producten 1x
         if search_state["products"] is None:
             search_state["products"] = load_mock_affiliate_products(
                 search_query=question
             )
-        constraints = search_state["constraints"]
 
         logger.info(
-            "[SEARCH] start",
+            "[SEARCH] state",
             extra={
                 "session_id": session_id,
                 "question": question,
+                "constraints": constraints,
+                "steps": search_state["steps"],
+                "products": len(search_state["products"])
+            }
+        )
+
+        # 2️⃣ verwerk nieuw antwoord → constraint
+        new_constraint = extract_constraint_from_answer(question)
+        if new_constraint:
+            constraints.update(new_constraint)
+            search_state["steps"] += 1
+
+        # 3️⃣ reduceer ALTIJD
+        filtered_products = apply_constraints(
+            search_state["products"],
+            constraints
+        )
+        search_state["products"] = filtered_products
+
+        logger.info(
+            "[SEARCH] reduced",
+            extra={
+                "session_id": session_id,
+                "remaining": len(filtered_products),
                 "constraints": constraints
             }
         )
 
-        category = detect_category(question)
-        specificity = detect_specificity(question)
-
         affiliate_results = None
 
-        # 🔹 NOG NIET GENOEG INFO → AI VRAAGT DOOR
-        if specificity in ("low", "medium"):
-
-            # 👉 AI stelt vervolgvraag
+        # 4️⃣ beslis: doorvragen of afronden
+        if search_state["steps"] >= 2 and len(filtered_products) <= 10:
+            answer = "Ik heb een paar goede opties voor je gevonden 👇"
+            affiliate_results = filtered_products[:3]
+        else:
             answer = ai_search_followup(
                 user_input=question,
                 search_query=question
             )
-
-        # 🔹 GENOEG INFO → FILTEREN
-        elif specificity == "high":
-
-            # 1️⃣ Productset laden (1x)
-            if search_state["products"] is None:
-                search_state["products"] = load_mock_affiliate_products(
-                    search_query=question
-                )
-
-            # altijd reduceren als er constraints zijn
-            products = apply_constraints(
-                search_state["products"],
-                search_state["constraints"]
-            )
-            search_state["products"] = products
-
-            # 2️⃣ 👉 HIER KOMT 1 NIEUWE CONSTRAINT
-            # (voorbeeld: deze mapping komt uit je bestaande followup-logica)
-            # DIT is de enige plek waar "opties afvallen"
-
-            new_constraint = extract_constraint_from_answer(question)
-            # bv: { "bag": True }
-
-            if new_constraint:
-                constraints.update(new_constraint)
-                search_state["steps"] += 1
-
-            # 3️⃣ Reduceren: alles wat niet matcht → eruit
-            filtered_products = apply_constraints(products, constraints)
-            search_state["products"] = filtered_products
-
-            # 🔥 als we 0 overhouden → NIET afronden, maar terugvallen en doorvragen
-            if len(filtered_products) == 0:
-                search_state["products"] = products  # revert
-                answer = ai_search_followup(user_input=question, search_query=question)
-
-            # 🔥 pas afronden als er echt al stappen zijn gezet én <=10 over
-            elif search_state["steps"] >= 2 and len(filtered_products) <= 10:
-                answer = "Ik heb een paar goede opties voor je gevonden 👇"
-                affiliate_results = filtered_products[:3]
-
-            else:
-                answer = ai_search_followup(user_input=question, search_query=question)
-
-
-            logger.info(
-                "[SEARCH] reduced",
-                extra={
-                    "session_id": session_id,
-                    "remaining": len(filtered_products),
-                    "constraints": constraints
-                }
-            )
-
-            # 4️⃣ Beslissen: nog doorvragen of afronden?
-            if len(filtered_products) > 10:
-                answer = ai_search_followup(
-                    user_input=question,
-                    search_query=question
-                )
-            else:
-                answer = "Ik heb een paar goede opties voor je gevonden 👇"
-                affiliate_results = filtered_products[:3]  # 🔥 TOP 3
 
         store_message_pair(session_id, question, answer)
 
