@@ -244,6 +244,13 @@ def apply_constraints(products: list, constraints: dict) -> list:
 
     for key, value in constraints.items():
 
+        if key == "price_max":
+            results = [
+                p for p in results
+                if p.get("price", 999999) <= value
+            ]
+            continue
+
         def matches(p):
             # 1️⃣ facets (toekomst)
             facets = p.get("facets")
@@ -263,31 +270,13 @@ def apply_constraints(products: list, constraints: dict) -> list:
 
 
 def extract_constraint_from_answer(answer: str, pending_key: str):
-    if not answer or not pending_key:
+    if not pending_key or not answer:
         return None
 
-    a = answer.lower()
+    
+    value = normalize_answer(answer)
 
-    # getal uit antwoord halen
-    import re
-    m = re.search(r"\d+", a)
-    if not m:
-        return None
-
-    value = int(m.group())
-
-    # budget is altijd numeriek
-    if pending_key == "price_max":
-        return {"price_max": value}
-
-    # default: string of boolean
-    if a in ("ja", "yes"):
-        return {pending_key: True}
-    if a in ("nee", "no"):
-        return {pending_key: False}
-
-    return {pending_key: a.strip()}
-
+    return {pending_key: value}
 
 
 
