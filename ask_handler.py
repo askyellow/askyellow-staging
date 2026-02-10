@@ -89,131 +89,148 @@ async def ask(request: Request):
     # =========================================================
 
     if mode == "search":
-
-        logger.info(
-            "[SEARCH] start",
-            extra={
-                "session_id": session_id,
-                "question": question
-            }
-        )
-
-        category = detect_category(question)
-        specificity = detect_specificity(question)
-
-        logger.info(
-            "[SEARCH] analysis",
-            extra={
-                "session_id": session_id,
-                "category": category,
-                "specificity": specificity,
-                "search_ready": search_ready
-            }
-        )
-
-        affiliate_results = None
-
-        # 🔹 NOG NIET GENOEG INFO → AI VRAAGT DOOR
-        if specificity in ("low", "medium"):
-            logger.info(
-                "[SEARCH] followup",
-                extra={
-                    "session_id": session_id,
-                    "reason": "insufficient_specificity"
+        return {
+            "answer": "Test affiliate render",
+            "affiliate_results": [
+                {
+                    "title": "Robotstofzuiger Test A",
+                    "price": 199,
+                    "url": "https://example.com"
+                },
+                {
+                    "title": "Robotstofzuiger Test B",
+                    "price": 179,
+                    "url": "https://example.com"
                 }
-            )
-
-            answer = ai_search_followup(
-                user_input=question,
-                search_query=question
-            )
-
-        # 🔹 GENOEG INFO → ZOEKEN
-        elif specificity == "high":
-            logger.info(
-                "[SEARCH] executing searches",
-                extra={
-                    "session_id": session_id
-                }
-            )
-
-            web_results = do_websearch(question)
-
-            logger.info(
-                "[SEARCH] websearch done",
-                extra={
-                    "session_id": session_id,
-                    "web_result_count": len(web_results) if web_results else 0
-                }
-            )
-
-            affiliate_results = await do_affiliate_search(
-                search_query=question,
-                session_id=session_id
-            )
-
-            logger.info(
-                "[SEARCH] affiliate search done",
-                extra={
-                    "session_id": session_id,
-                    "affiliate_result_count": len(affiliate_results)
-                    if affiliate_results else 0
-                }
-            )
-
-            answer = "Ik heb een aantal goede opties voor je gevonden 👇"
-
-        # 🔹 SPECIFICITY HOOG MAAR SEARCH NOG NIET KLAAR
-        # elif specificity == "high" and not search_ready:
-        #     logger.info(
-        #         "[SEARCH] followup",
-        #         extra={
-        #             "session_id": session_id,
-        #             "reason": "search_not_ready"
-        #         }
-        #     )
-
-            answer = ai_search_followup(
-                user_input=question,
-                search_query=question
-            )
-
-        store_message_pair(session_id, question, answer)
-
-        payload = {
-            "type_": "search",
-            "answer": answer,
-            "intent": intent,
-            "mode": "search"
+            ]
         }
 
-        if affiliate_results:
-            logger.info(
-                "[SEARCH] attaching affiliate results to response",
-                extra={
-                    "session_id": session_id,
-                    "affiliate_result_count": len(affiliate_results)
-                }
-            )
-            payload["affiliate_results"] = affiliate_results
+    # if mode == "search":
 
-        else:
-            logger.info(
-                "[SEARCH] no affiliate results attached",
-                extra={
-                    "session_id": session_id
-                }
-            )
+    #     logger.info(
+    #         "[SEARCH] start",
+    #         extra={
+    #             "session_id": session_id,
+    #             "question": question
+    #         }
+    #     )
 
-        logger.info(
-            "[SEARCH] done",
-            extra={
-                "session_id": session_id,
-                "has_affiliate_results": bool(affiliate_results)
-            }
-        )
+    #     category = detect_category(question)
+    #     specificity = detect_specificity(question)
 
-        return _response(**payload)
+    #     logger.info(
+    #         "[SEARCH] analysis",
+    #         extra={
+    #             "session_id": session_id,
+    #             "category": category,
+    #             "specificity": specificity,
+    #             "search_ready": search_ready
+    #         }
+    #     )
+
+    #     affiliate_results = None
+
+    #     # 🔹 NOG NIET GENOEG INFO → AI VRAAGT DOOR
+    #     if specificity in ("low", "medium"):
+    #         logger.info(
+    #             "[SEARCH] followup",
+    #             extra={
+    #                 "session_id": session_id,
+    #                 "reason": "insufficient_specificity"
+    #             }
+    #         )
+
+    #         answer = ai_search_followup(
+    #             user_input=question,
+    #             search_query=question
+    #         )
+
+    #     # 🔹 GENOEG INFO → ZOEKEN
+    #     elif specificity == "high":
+    #         logger.info(
+    #             "[SEARCH] executing searches",
+    #             extra={
+    #                 "session_id": session_id
+    #             }
+    #         )
+
+    #         web_results = do_websearch(question)
+
+    #         logger.info(
+    #             "[SEARCH] websearch done",
+    #             extra={
+    #                 "session_id": session_id,
+    #                 "web_result_count": len(web_results) if web_results else 0
+    #             }
+    #         )
+
+    #         affiliate_results = await do_affiliate_search(
+    #             search_query=question,
+    #             session_id=session_id
+    #         )
+
+    #         logger.info(
+    #             "[SEARCH] affiliate search done",
+    #             extra={
+    #                 "session_id": session_id,
+    #                 "affiliate_result_count": len(affiliate_results)
+    #                 if affiliate_results else 0
+    #             }
+    #         )
+
+    #         answer = "Ik heb een aantal goede opties voor je gevonden 👇"
+
+    #     # 🔹 SPECIFICITY HOOG MAAR SEARCH NOG NIET KLAAR
+    #     # elif specificity == "high" and not search_ready:
+    #     #     logger.info(
+    #     #         "[SEARCH] followup",
+    #     #         extra={
+    #     #             "session_id": session_id,
+    #     #             "reason": "search_not_ready"
+    #     #         }
+    #     #     )
+
+    #         answer = ai_search_followup(
+    #             user_input=question,
+    #             search_query=question
+    #         )
+
+    #     store_message_pair(session_id, question, answer)
+
+    #     payload = {
+    #         "type_": "search",
+    #         "answer": answer,
+    #         "intent": intent,
+    #         "mode": "search"
+    #     }
+
+    #     if affiliate_results:
+    #         logger.info(
+    #             "[SEARCH] attaching affiliate results to response",
+    #             extra={
+    #                 "session_id": session_id,
+    #                 "affiliate_result_count": len(affiliate_results)
+    #             }
+    #         )
+    #         payload["affiliate_results"] = affiliate_results
+
+    #     else:
+    #         logger.info(
+    #             "[SEARCH] no affiliate results attached",
+    #             extra={
+    #                 "session_id": session_id
+    #             }
+    #         )
+
+    #     logger.info(
+    #         "[SEARCH] done",
+    #         extra={
+    #             "session_id": session_id,
+    #             "has_affiliate_results": bool(affiliate_results)
+    #         }
+    #     )
+
+    #     return _response(**payload)
 
     # =========================================================
     # 💬 CHAT FALLBACK (ONGEWIIJZIGD)
