@@ -277,7 +277,7 @@ def _is_time_question(question: str) -> bool:
     return any(k in q for k in TIME_KEYWORDS)
 
 
-def _response(type_, answer, intent=None, mode=None, meta=None):
+def _response(type_, answer, intent=None, mode=None, meta=None, affiliate_results=None):
     response = {
         "type_": type_,
         "answer": answer,
@@ -288,7 +288,11 @@ def _response(type_, answer, intent=None, mode=None, meta=None):
     if meta:
         response["meta"] = meta
 
+    if affiliate_results:
+        response["affiliate_results"] = affiliate_results
+
     return response
+
 
 
 def detect_category(query: str) -> str:
