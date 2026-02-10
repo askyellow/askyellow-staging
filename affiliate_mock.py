@@ -2,7 +2,7 @@
 from typing import List, Dict, Any
 import random
 
-def load_mock_affiliate_products(search_query: str) -> List[Dict[str, Any]]:
+def load_mock_affiliate_products(search_query=None) -> List[Dict[str, Any]]:
     base_products = [
         {
             "title": "Philips PowerGo Stofzuiger met Zak",
