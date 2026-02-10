@@ -93,6 +93,11 @@ async def ask(request: Request):
     if mode == "search":
 
         search_state = get_search_state(session_id)
+
+        if search_state["products"] is None:
+            search_state["products"] = load_mock_affiliate_products(
+                search_query=question
+            )
         constraints = search_state["constraints"]
 
         logger.info(
@@ -127,7 +132,12 @@ async def ask(request: Request):
                     search_query=question
                 )
 
-            products = search_state["products"]
+            # altijd reduceren als er constraints zijn
+            products = apply_constraints(
+                search_state["products"],
+                search_state["constraints"]
+            )
+            search_state["products"] = products
 
             # 2️⃣ 👉 HIER KOMT 1 NIEUWE CONSTRAINT
             # (voorbeeld: deze mapping komt uit je bestaande followup-logica)
