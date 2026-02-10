@@ -138,11 +138,25 @@ async def ask(request: Request):
 
             if new_constraint:
                 constraints.update(new_constraint)
+                search_state["steps"] += 1
 
             # 3️⃣ Reduceren: alles wat niet matcht → eruit
             filtered_products = apply_constraints(products, constraints)
-
             search_state["products"] = filtered_products
+
+            # 🔥 als we 0 overhouden → NIET afronden, maar terugvallen en doorvragen
+            if len(filtered_products) == 0:
+                search_state["products"] = products  # revert
+                answer = ai_search_followup(user_input=question, search_query=question)
+
+            # 🔥 pas afronden als er echt al stappen zijn gezet én <=10 over
+            elif search_state["steps"] >= 2 and len(filtered_products) <= 10:
+                answer = "Ik heb een paar goede opties voor je gevonden 👇"
+                affiliate_results = filtered_products[:3]
+
+            else:
+                answer = ai_search_followup(user_input=question, search_query=question)
+
 
             logger.info(
                 "[SEARCH] reduced",
@@ -224,22 +238,30 @@ async def ask(request: Request):
 # =============================================================
 
 def apply_constraints(products: list, constraints: dict) -> list:
-    """
-    Reduceert de productlijst door alles wat niet voldoet
-    aan de huidige constraints eruit te gooien.
-    """
     if not constraints:
         return products
 
     results = products
 
     for key, value in constraints.items():
-        results = [
-            p for p in results
-            if p.get("facets", {}).get(key) == value
-        ]
+
+        def matches(p):
+            # 1️⃣ facets (toekomst)
+            facets = p.get("facets")
+            if isinstance(facets, dict) and key in facets:
+                return facets[key] == value
+
+            # 2️⃣ top-level (huidige mock)
+            if key in p:
+                return p[key] == value
+
+            # 3️⃣ onbekende key → product blijft (niet uitsluiten)
+            return True
+
+        results = [p for p in results if matches(p)]
 
     return results
+
 
 def extract_constraint_from_answer(answer: str) -> dict | None:
     a = answer.lower().strip()
@@ -267,7 +289,8 @@ def get_search_state(session_id):
     if session_id not in SEARCH_STATE:
         SEARCH_STATE[session_id] = {
             "constraints": {},
-            "products": None
+            "products": None,
+            "steps": 0
         }
     return SEARCH_STATE[session_id]
 
