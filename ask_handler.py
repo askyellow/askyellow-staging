@@ -154,7 +154,6 @@ async def ask(request: Request):
 
             affiliate_results =  load_mock_affiliate_products(
                 search_query=question,
-                session_id=session_id
             )
 
             logger.info(
