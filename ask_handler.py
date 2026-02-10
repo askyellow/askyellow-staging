@@ -223,6 +223,24 @@ async def ask(request: Request):
 # HELPERS
 # =============================================================
 
+def apply_constraints(products: list, constraints: dict) -> list:
+    """
+    Reduceert de productlijst door alles wat niet voldoet
+    aan de huidige constraints eruit te gooien.
+    """
+    if not constraints:
+        return products
+
+    results = products
+
+    for key, value in constraints.items():
+        results = [
+            p for p in results
+            if p.get("facets", {}).get(key) == value
+        ]
+
+    return results
+
 def extract_constraint_from_answer(answer: str) -> dict | None:
     a = answer.lower().strip()
 
