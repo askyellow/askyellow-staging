@@ -152,6 +152,7 @@ async def ask(request: Request):
                 user_input=question,
                 search_query=question
             )
+            search_state["pending_key"] = "type"
 
         store_message_pair(session_id, question, answer)
 
@@ -216,6 +217,22 @@ async def ask(request: Request):
 # HELPERS
 # =============================================================
 
+def normalize_answer(answer: str):
+    a = answer.lower()
+
+    if a in ("ja", "yes"):
+        return True
+    if a in ("nee", "no"):
+        return False
+
+    # getallen
+    import re
+    m = re.search(r"\d+", a)
+    if m:
+        return int(m.group())
+
+    return a.strip()
+
 def apply_constraints(products: list, constraints: dict) -> list:
     if not constraints:
         return products
@@ -242,24 +259,14 @@ def apply_constraints(products: list, constraints: dict) -> list:
     return results
 
 
-def extract_constraint_from_answer(answer: str) -> dict | None:
-    a = answer.lower().strip()
+def extract_constraint_from_answer(answer: str, pending_key: str):
+    if not pending_key or not answer:
+        return None
 
-    # JA / NEE
-    if a in ("ja", "yes"):
-        return {"yes": True}
+    value = normalize_answer(answer)
 
-    if a in ("nee", "no"):
-        return {"yes": False}
+    return {pending_key: value}
 
-    # Keuze-woorden (voorbeeld)
-    if "met zak" in a:
-        return {"bag": True}
-
-    if "zonder zak" in a or "zakloos" in a:
-        return {"bag": False}
-
-    return None
 
 
 SEARCH_STATE = {}
