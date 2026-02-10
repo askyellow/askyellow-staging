@@ -41,6 +41,7 @@ async def ask(request: Request):
     language = payload.get("language", "nl")
     mode = payload.get("mode")  # frontend mag dit sturen
     search_ready = payload.get("search_ready", False)
+    # 🔑 tijdelijke search state (per sessie)
 
     if not question:
         raise HTTPException(status_code=400, detail="Missing question")
@@ -85,102 +86,82 @@ async def ask(request: Request):
     # =========================================================
     # 🔍 SEARCH FLOW
     # =========================================================
-
-    # if mode == "search":
-    #     return {
-    #         "answer": "Ik heb een aantal goede opties voor je gevonden 👇",
-    #         "affiliate_results": load_mock_affiliate_products()
-    #     }
-
+    # =========================================================
+    # 🔍 SEARCH FLOW
+    # =========================================================
 
     if mode == "search":
+
+        search_state = get_search_state(session_id)
+        constraints = search_state["constraints"]
 
         logger.info(
             "[SEARCH] start",
             extra={
                 "session_id": session_id,
-                "question": question
+                "question": question,
+                "constraints": constraints
             }
         )
 
         category = detect_category(question)
         specificity = detect_specificity(question)
 
-        logger.info(
-            "[SEARCH] analysis",
-            extra={
-                "session_id": session_id,
-                "category": category,
-                "specificity": specificity,
-                "search_ready": search_ready
-            }
-        )
-
         affiliate_results = None
 
         # 🔹 NOG NIET GENOEG INFO → AI VRAAGT DOOR
         if specificity in ("low", "medium"):
-            logger.info(
-                "[SEARCH] followup",
-                extra={
-                    "session_id": session_id,
-                    "reason": "insufficient_specificity"
-                }
-            )
 
+            # 👉 AI stelt vervolgvraag
             answer = ai_search_followup(
                 user_input=question,
                 search_query=question
             )
 
-        # 🔹 GENOEG INFO → ZOEKEN
+        # 🔹 GENOEG INFO → FILTEREN
         elif specificity == "high":
-            logger.info(
-                "[SEARCH] executing searches",
-                extra={
-                    "session_id": session_id
-                }
-            )
 
-            web_results = do_websearch(question)
+            # 1️⃣ Productset laden (1x)
+            if search_state["products"] is None:
+                search_state["products"] = load_mock_affiliate_products(
+                    search_query=question
+                )
+
+            products = search_state["products"]
+
+            # 2️⃣ 👉 HIER KOMT 1 NIEUWE CONSTRAINT
+            # (voorbeeld: deze mapping komt uit je bestaande followup-logica)
+            # DIT is de enige plek waar "opties afvallen"
+
+            new_constraint = interpret_search_followup(question)
+            # bv: { "bag": True }
+
+            if new_constraint:
+                constraints.update(new_constraint)
+
+            # 3️⃣ Reduceren: alles wat niet matcht → eruit
+            filtered_products = apply_constraints(products, constraints)
+
+            search_state["products"] = filtered_products
 
             logger.info(
-                "[SEARCH] websearch done",
+                "[SEARCH] reduced",
                 extra={
                     "session_id": session_id,
-                    "web_result_count": len(web_results) if web_results else 0
+                    "remaining": len(filtered_products),
+                    "constraints": constraints
                 }
             )
 
-            affiliate_results =  load_mock_affiliate_products(
-                search_query=question,
-            )
-
-            logger.info(
-                "[SEARCH] affiliate search done",
-                extra={
-                    "session_id": session_id,
-                    "affiliate_result_count": len(affiliate_results)
-                    if affiliate_results else 0
-                }
-            )
-
-            answer = "Ik heb een aantal goede opties voor je gevonden 👇"
-
-        # 🔹 SPECIFICITY HOOG MAAR SEARCH NOG NIET KLAAR
-        # elif specificity == "high" and not search_ready:
-        #     logger.info(
-        #         "[SEARCH] followup",
-        #         extra={
-        #             "session_id": session_id,
-        #             "reason": "search_not_ready"
-        #         }
-        #     )
-
-            answer = ai_search_followup(
-                user_input=question,
-                search_query=question
-            )
+            # 4️⃣ Beslissen: nog doorvragen of afronden?
+            if len(filtered_products) > 10:
+                answer = ai_search_followup(
+                    user_input=question,
+                    search_query=question
+                )
+            else:
+                answer = "Ik heb een paar goede opties voor je gevonden 👇"
+                affiliate_results = filtered_products[:3]  # 🔥 TOP 3
 
         store_message_pair(session_id, question, answer)
 
@@ -192,30 +173,7 @@ async def ask(request: Request):
         }
 
         if affiliate_results:
-            logger.info(
-                "[SEARCH] attaching affiliate results to response",
-                extra={
-                    "session_id": session_id,
-                    "affiliate_result_count": len(affiliate_results)
-                }
-            )
             payload["affiliate_results"] = affiliate_results
-
-        else:
-            logger.info(
-                "[SEARCH] no affiliate results attached",
-                extra={
-                    "session_id": session_id
-                }
-            )
-
-        logger.info(
-            "[SEARCH] done",
-            extra={
-                "session_id": session_id,
-                "has_affiliate_results": bool(affiliate_results)
-            }
-        )
 
         return _response(**payload)
 
@@ -264,6 +222,74 @@ async def ask(request: Request):
 # =============================================================
 # HELPERS
 # =============================================================
+SEARCH_STATE = {}
+
+def get_search_state(session_id):
+    if session_id not in SEARCH_STATE:
+        SEARCH_STATE[session_id] = {
+            "constraints": {},
+            "products": None
+        }
+    return SEARCH_STATE[session_id]
+
+def reduce_products(products, constraints):
+    results = products
+
+    for key, value in constraints.items():
+        results = [
+            p for p in results
+            if p.get("facets", {}).get(key) == value
+        ]
+
+    return results
+
+def filter_products_by_query(products, query: str):
+    q = query.lower().split()
+
+    results = []
+    for p in products:
+        attrs = p.get("attributes", {})
+        match_count = sum(
+            1 for v in attrs.values()
+            if str(v).lower() in q
+        )
+        if match_count > 0:
+            results.append(p)
+
+    return results
+
+def apply_faceted_filters(products: list, filters: dict) -> list:
+    if not filters:
+        return products
+
+    results = products
+
+    for key, value in filters.items():
+        # max / min ranges
+        if key.endswith("_max"):
+            base = key.replace("_max", "")
+            results = [
+                p for p in results
+                if p.get("facets", {}).get(base) is not None
+                and p["facets"][base] <= value
+            ]
+
+        elif key.endswith("_min"):
+            base = key.replace("_min", "")
+            results = [
+                p for p in results
+                if p.get("facets", {}).get(base) is not None
+                and p["facets"][base] >= value
+            ]
+
+        # exact match
+        else:
+            results = [
+                p for p in results
+                if p.get("facets", {}).get(key) == value
+            ]
+
+    return results
 
 def _is_time_question(question: str) -> bool:
     TIME_KEYWORDS = [
