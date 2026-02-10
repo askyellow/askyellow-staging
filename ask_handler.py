@@ -244,6 +244,13 @@ def apply_constraints(products: list, constraints: dict) -> list:
 
     for key, value in constraints.items():
 
+        if key == "price_max":
+            results = [
+                p for p in results
+                if p.get("price", 999999) <= value
+            ]
+            continue
+        
         def matches(p):
             # 1️⃣ facets (toekomst)
             facets = p.get("facets")
