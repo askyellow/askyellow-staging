@@ -115,6 +115,16 @@ async def ask(request: Request):
             constraints.update(new_constraint)
             search_state["steps"] += 1
 
+            logger.info(
+                "[SEARCH] constraint check",
+                extra={
+                    "question": question,
+                    "new_constraint": new_constraint,
+                    "steps": search_state["steps"]
+                }
+            )
+
+
         # 3️⃣ reduceer ALTIJD
         filtered_products = apply_constraints(
             search_state["products"],
@@ -152,8 +162,11 @@ async def ask(request: Request):
             "mode": "search"
         }
 
-        if affiliate_results:
-            payload["affiliate_results"] = affiliate_results
+        payload["affiliate_results"] = (
+            affiliate_results
+            or search_state["products"][:3]
+        )
+
 
         return _response(**payload)
 
