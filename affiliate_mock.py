@@ -49,7 +49,7 @@ def load_mock_affiliate_products(search_query=None) -> List[Dict[str, Any]]:
             "source": "bol",
             "external_id": f"mock-{i}",
             "title": p["title"],
-            "price": p["price"] + random.randint(-50, 50),
+            "price": p["price"] + random.randint(-25, 25),
             "type": p["type"],
             "bag": p["bag"],
             "keywords": p["keywords"],
