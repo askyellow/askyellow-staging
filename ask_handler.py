@@ -110,7 +110,10 @@ async def ask(request: Request):
         )
 
         # 2️⃣ verwerk nieuw antwoord → constraint
-        new_constraint = extract_constraint_from_answer(question)
+        new_constraint = extract_constraint_from_answer(
+            question,
+            search_state.get("pending_key")
+        )
         if new_constraint:
             constraints.update(new_constraint)
             search_state["steps"] += 1
