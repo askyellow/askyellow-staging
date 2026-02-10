@@ -133,7 +133,7 @@ async def ask(request: Request):
             # (voorbeeld: deze mapping komt uit je bestaande followup-logica)
             # DIT is de enige plek waar "opties afvallen"
 
-            new_constraint = interpret_search_followup(question)
+            new_constraint = extract_constraint_from_answer(question)
             # bv: { "bag": True }
 
             if new_constraint:
@@ -222,6 +222,27 @@ async def ask(request: Request):
 # =============================================================
 # HELPERS
 # =============================================================
+
+def extract_constraint_from_answer(answer: str) -> dict | None:
+    a = answer.lower().strip()
+
+    # JA / NEE
+    if a in ("ja", "yes"):
+        return {"yes": True}
+
+    if a in ("nee", "no"):
+        return {"yes": False}
+
+    # Keuze-woorden (voorbeeld)
+    if "met zak" in a:
+        return {"bag": True}
+
+    if "zonder zak" in a or "zakloos" in a:
+        return {"bag": False}
+
+    return None
+
+
 SEARCH_STATE = {}
 
 def get_search_state(session_id):
