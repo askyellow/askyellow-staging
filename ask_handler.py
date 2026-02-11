@@ -16,6 +16,7 @@ from llm import call_yellowmind_llm
 from affiliate_mock import load_mock_affiliate_products
 
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +109,8 @@ async def ask(request: Request):
                 "products": len(search_state["products"])
             }
         )
+        if "price_max" not in constraints:
+            next_question = "Wat is je maximale budget?"
 
         # 2️⃣ verwerk nieuw antwoord → constraint
         new_constraint = extract_constraint_from_answer(
@@ -117,6 +120,7 @@ async def ask(request: Request):
         if new_constraint:
             constraints.update(new_constraint)
             search_state["steps"] += 1
+            pending_key = None
 
             logger.info(
                 "[SEARCH] constraint check",
@@ -220,6 +224,19 @@ async def ask(request: Request):
 # HELPERS
 # =============================================================
 
+
+def extract_money_amount(text: str) -> int | None:
+    money_indicators = ["€", "euro", "budget", "max", "onder", "tot"]
+
+    if not any(word in text for word in money_indicators):
+        return None
+
+    match = re.search(r"\d{2,5}", text)
+    if match:
+        return int(match.group())
+
+    return None
+
 def normalize_answer(answer: str):
     a = answer.lower()
 
@@ -229,7 +246,6 @@ def normalize_answer(answer: str):
         return False
 
     # getallen
-    import re
     m = re.search(r"\d+", a)
     if m:
         return int(m.group())
@@ -269,16 +285,25 @@ def apply_constraints(products: list, constraints: dict) -> list:
     return results
 
 
-def extract_constraint_from_answer(answer: str, pending_key: str):
-    if not pending_key or not answer:
+def extract_constraint_from_answer(question: str, pending_key: str | None):
+    q = question.lower()
+
+    # =========================
+    # 💰 BUDGET (EXPLICIET GEVRAAGD)
+    # =========================
+    if pending_key == "price_max":
+        amount = extract_money_amount(q)
+        if amount:
+            return {"price_max": amount}
+
+    # =========================
+    # GENERIEKE GETAL-PARSING (alleen als geen budgetvraag openstaat)
+    # =========================
+    if pending_key is None:
+        # hier NIET automatisch price_max zetten
         return None
 
-
-    value = normalize_answer(answer)
-
-    return {pending_key: value}
-
-
+    return None
 
 SEARCH_STATE = {}
 
