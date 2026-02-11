@@ -110,7 +110,8 @@ async def ask(request: Request):
             }
         )
         if "price_max" not in constraints:
-            next_question = "Wat is je maximale budget?"
+            search_state["pending_key"] = "price_max"
+
 
         # 2️⃣ verwerk nieuw antwoord → constraint
         new_constraint = extract_constraint_from_answer(
@@ -120,7 +121,8 @@ async def ask(request: Request):
         if new_constraint:
             constraints.update(new_constraint)
             search_state["steps"] += 1
-            pending_key = None
+            search_state["pending_key"] = None
+
 
             logger.info(
                 "[SEARCH] constraint check",
@@ -159,7 +161,9 @@ async def ask(request: Request):
                 user_input=question,
                 search_query=question
             )
-            search_state["pending_key"] = "type"
+            if search_state["pending_key"] is None:
+                search_state["pending_key"] = "type"
+
 
         store_message_pair(session_id, question, answer)
 
