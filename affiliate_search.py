@@ -30,6 +30,9 @@ def affiliate_models(data: dict):
     session_id = data.get("session_id")
     constraints = data.get("constraints")
 
+    print("SESSION:", session_id)
+    print("CONSTRAINTS:", constraints)
+
     if not session_id or not constraints:
         return {"models": []}
 
