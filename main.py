@@ -13,7 +13,6 @@ from db import get_db_conn, init_db
 from knowledge import search_knowledge
 from ask_handler import router as ask_router
 from websearch import router as websearch_router
-from affiliate_search import router as affiliate_router
 
 
 app = FastAPI(title="YellowMind API")
@@ -43,12 +42,13 @@ from chat_shared import (
     get_auth_user_from_session,
     get_history_for_model, store_message_pair,
 )
-from affiliate import router as affiliate_router
 from routes.health import router as health_router
+from affiliate_search import router as affiliate_router
+
+
 app.include_router(health_router, include_in_schema=False)
 app.include_router(chat_router)
 app.include_router(image_generate)
-app.include_router(affiliate_router)
 app.include_router(ask_router)
 app.include_router(websearch_router)
 app.include_router(affiliate_router)
