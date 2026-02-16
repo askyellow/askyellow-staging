@@ -30,6 +30,9 @@ def affiliate_models(data: dict):
     session_id = data.get("session_id")
     constraints = data.get("constraints")
 
+    if not session_id or not constraints:
+        return {"models": []}
+
     models = generate_affiliate_models(constraints, session_id)
 
     enriched = []
@@ -42,9 +45,7 @@ def affiliate_models(data: dict):
             "affiliate_url": link
         })
 
-    if not session_id or not constraints:
-        return {"models": []}
-
+    return {"models": enriched}
 
 
 
