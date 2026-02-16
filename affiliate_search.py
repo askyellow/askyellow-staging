@@ -3,10 +3,14 @@ from typing import List, Dict, Any
 import logging
 from bol_client import BolClient
 import os
+from fastapi import APIRouter
+router = APIRouter()
+from affiliate_engine import generate_affiliate_models, build_amazon_search_link
 
 from affiliate_mock import load_mock_affiliate_products
 logger = logging.getLogger(__name__)
 
+AMAZON_TAG = os.getenv("AMAZON_TAG", "askyellow-21")
 
 USE_BOL_API = False  # 🔥 NU HARD UIT
 
@@ -20,6 +24,26 @@ async def do_affiliate_search(search_query: str, session_id: str | None = None):
         return load_mock_affiliate_products(search_query)
 
     # 👇 echte bol.com call (later)
+
+@router.post("/affiliate/models")
+def affiliate_models(data: dict):
+    session_id = data.get("session_id")
+    constraints = data.get("constraints")
+
+    models = generate_affiliate_models(constraints, session_id)
+
+    enriched = []
+    for m in models:
+        model_name = f"{m['brand']} {m['model']}"
+        link = build_amazon_search_link(model_name, AMAZON_TAG)
+
+        enriched.append({
+            **m,
+            "affiliate_url": link
+        })
+
+    if not session_id or not constraints:
+        return {"models": []}
 
 
 

@@ -13,6 +13,7 @@ from db import get_db_conn, init_db
 from knowledge import search_knowledge
 from ask_handler import router as ask_router
 from websearch import router as websearch_router
+from affiliate_search import router as affiliate_router
 
 
 app = FastAPI(title="YellowMind API")
@@ -50,6 +51,7 @@ app.include_router(image_generate)
 app.include_router(affiliate_router)
 app.include_router(ask_router)
 app.include_router(websearch_router)
+app.include_router(affiliate_router)
 
 time_context = build_time_context()
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
@@ -936,6 +938,6 @@ def detect_cold_start(sql_ms, kb_ms, ai_ms, total_ms):
 # main.py doet hier niets meer mee
 # (hooguit intent normaliseren)
 
-# if intent == "search":
-#     intent = "text"
+if intent == "search":
+    intent = "text"
 
