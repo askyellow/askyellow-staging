@@ -16,6 +16,7 @@ def generate_affiliate_models(constraints: dict, session_id: str) -> list:
     )
 
     content = response.choices[0].message.content
+    print("RAW AI RESPONSE:", content)
 
     try:
         models = json.loads(content)
