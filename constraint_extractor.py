@@ -49,7 +49,7 @@ def extract_constraints(conversation_text: str) -> dict:
     messages = build_constraint_prompt(conversation_text)
 
     response = client.chat.completions.create(
-        model="gpt-5-2",
+        model="gpt-4o-mini",
         messages=messages,
         temperature=0.2  # laag voor stabiliteit
     )
