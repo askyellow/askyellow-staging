@@ -26,6 +26,7 @@ def generate_affiliate_models(constraints: dict, session_id: str) -> list:
         print("JSON PARSE ERROR:", e)
         print("RAW CONTENT:", content)
         return []
+    return models
 
 
 
