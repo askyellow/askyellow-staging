@@ -25,18 +25,30 @@ async def do_affiliate_search(search_query: str, session_id: str | None = None):
 
     # 👇 echte bol.com call (later)
 
+from constraint_extractor import extract_and_normalize
+
 @router.post("/affiliate/models")
 def affiliate_models(data: dict):
     session_id = data.get("session_id")
-    constraints = data.get("constraints")
+    constraints_input = data.get("constraints")
 
     print("SESSION:", session_id)
-    print("CONSTRAINTS:", constraints)
+    print("RAW CONSTRAINTS INPUT:", constraints_input)
 
-    if not session_id or not constraints:
+    if not session_id or not constraints_input:
         return {"models": []}
 
-    models = generate_affiliate_models(constraints, session_id)
+    # 🔥 Stap 1: Query → structured constraints
+    if isinstance(constraints_input, dict) and "query" in constraints_input:
+        conversation_text = constraints_input["query"]
+        structured = extract_and_normalize(conversation_text)
+    else:
+        structured = constraints_input
+
+    print("STRUCTURED CONSTRAINTS:", structured)
+
+    # 🔥 Stap 2: Structured → affiliate models
+    models = generate_affiliate_models(structured, session_id)
 
     enriched = []
     for m in models:
@@ -49,7 +61,6 @@ def affiliate_models(data: dict):
         })
 
     return {"models": enriched}
-
 
 
 # bol_client = BolClient(
