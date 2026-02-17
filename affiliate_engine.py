@@ -16,12 +16,17 @@ def generate_affiliate_models(constraints: dict, session_id: str) -> list:
     )
 
     content = response.choices[0].message.content
-    print("RAW AI RESPONSE:", content)
+    print("=== RAW AI RESPONSE ===")
+    print(content)
+    print("=======================")
 
     try:
         models = json.loads(content)
-    except Exception:
-        return []
+    except Exception as e:
+        print("JSON PARSE ERROR:", e)
+        print("RAW CONTENT:", content)
+    return []
+
 
     return models
 
