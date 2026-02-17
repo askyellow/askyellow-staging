@@ -10,7 +10,7 @@ def generate_affiliate_models(constraints: dict, session_id: str) -> list:
     messages = build_affiliate_prompt(constraints)
 
     response = client.chat.completions.create(
-        model="gpt-5-2",   # jouw standaard model
+        model="gpt-4o-mini",   # jouw standaard model
         messages=messages,
         temperature=0.4
     )
