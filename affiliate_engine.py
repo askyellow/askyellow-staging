@@ -21,15 +21,27 @@ def generate_affiliate_models(constraints: dict, session_id: str) -> list:
     print("=======================")
 
     try:
-        models = json.loads(content)
+        models = safe_json_extract(content)
     except Exception as e:
         print("JSON PARSE ERROR:", e)
         print("RAW CONTENT:", content)
-    return []
+        return []
 
 
-    return models
 
+def safe_json_extract(content: str):
+    content = content.strip()
+
+    # strip markdown codeblocks
+    content = re.sub(r"```json", "", content)
+    content = re.sub(r"```", "", content)
+
+    # zoek array
+    match = re.search(r"\[\s*{.*}\s*\]", content, re.DOTALL)
+    if match:
+        return json.loads(match.group())
+
+    raise ValueError("No JSON array found")
 
 def build_amazon_search_link(model_name: str, tag: str) -> str:
     query = quote_plus(model_name)
