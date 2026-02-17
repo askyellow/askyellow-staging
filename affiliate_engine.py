@@ -2,7 +2,7 @@ import json
 from affiliate_prompt import build_affiliate_prompt
 from openai import OpenAI
 from urllib.parse import quote_plus
-
+import re
 
 client = OpenAI()
 
