@@ -12,8 +12,9 @@ def get_or_create_state(session_id: str) -> Dict[str, Any]:
             "constraints": {
                 "price_max": None,
                 "keywords": []
+            },
+            "refinement_done": False
             }
-        }
     return SEARCH_STATES[session_id]
 
 

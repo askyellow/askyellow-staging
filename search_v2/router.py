@@ -15,6 +15,27 @@ async def analyze_v2(data: dict):
     state = get_or_create_state(session_id)
     state = merge_analysis_into_state(state, analysis)
 
+
+    def should_refine(state, analysis):
+        # refinement alleen vóór eerste search
+        if state.get("refinement_done"):
+            return False
+
+        # alleen als we al basis hebben
+        if state.get("intent") != "search":
+            return False
+        if not state.get("category"):
+            return False
+        if state["constraints"].get("price_max") is None:
+            return False
+
+        # geen refinement op negatieve antwoorden
+        if analysis.get("is_negative"):
+            return False
+
+        return bool(analysis.get("should_refine")) and bool(analysis.get("refine_question"))
+
+
     def should_search(state):
         return (
             state["intent"] == "search"
@@ -33,3 +54,4 @@ async def analyze_v2(data: dict):
             "question": "Wat is je maximale budget?",
             "state": state
         }
+

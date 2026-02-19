@@ -21,6 +21,16 @@ Rules:
 - If the answer is like "nee", set is_negative true.
 - Do not invent products.
 - No explanations. Only JSON.
+
+Also return:
+- should_refine (boolean): true only if ONE extra question would significantly narrow results.
+- refine_question (string or null): exactly 1 short Dutch question if should_refine is true, otherwise null.
+
+Rules:
+- Only consider refinement if category is known AND price_max is known.
+- Ask about ONE high-impact attribute (e.g. "elektrisch of niet?" for fatbike, "stoom of droog?" for strijkijzer).
+- Never ask about budget again if price_max is already present.
+- If user input is a negative like "nee", do not invent refinement; set should_refine false.
 """
 
 def ai_analyze_input(user_input: str):
