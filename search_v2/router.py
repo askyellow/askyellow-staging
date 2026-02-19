@@ -15,7 +15,21 @@ async def analyze_v2(data: dict):
     state = get_or_create_state(session_id)
     state = merge_analysis_into_state(state, analysis)
 
-    return {
-        "analysis": analysis,
-        "state": state
-    }
+    def should_search(state):
+        return (
+            state["intent"] == "search"
+            and state["category"] is not None
+            and state["constraints"]["price_max"] is not None
+        )
+
+    if should_search(state):
+        return {
+            "action": "search",
+            "state": state
+        }
+    else:
+        return {
+            "action": "ask",
+            "question": "Wat is je maximale budget?",
+            "state": state
+        }
