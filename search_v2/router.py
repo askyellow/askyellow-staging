@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from .analyzer import ai_analyze_input
+from .analyzer import ai_generate_refinement_question
 
 router = APIRouter(prefix="/search_v2", tags=["search_v2"])
 
