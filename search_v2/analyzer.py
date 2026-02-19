@@ -31,6 +31,11 @@ Rules:
 - Ask about ONE high-impact attribute (e.g. "elektrisch of niet?" for fatbike, "stoom of droog?" for strijkijzer).
 - Never ask about budget again if price_max is already present.
 - If user input is a negative like "nee", do not invent refinement; set should_refine false.
+
+intent can be:
+- product_search (clear buying intent)
+- product_advice (needs recommendation/explanation)
+- general_question
 """
 
 def ai_analyze_input(user_input: str):
@@ -57,6 +62,9 @@ Je bent een slimme e-commerce assistent.
 De gebruiker zoekt naar:
 Categorie: {state.get("category")}
 Maximale prijs: {state["constraints"].get("price_max")}
+
+If the user is asking what type of product they need or seeking guidance, classify as product_advice.
+Only classify as product_search if they are clearly searching to buy.
 
 Stel EXACT 1 korte, natuurlijke vervolgvraag
 die de zoekresultaten significant verfijnt.
