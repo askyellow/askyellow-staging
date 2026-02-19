@@ -12,9 +12,6 @@ async def analyze_v2(data: dict):
 
     analysis = ai_analyze_input(query)
 
-    print("ANALYSIS:", analysis)
-    print("STATE:", state)
-
     state = get_or_create_state(session_id)
     state = merge_analysis_into_state(state, analysis)
 
@@ -38,6 +35,8 @@ async def analyze_v2(data: dict):
 
         return bool(analysis.get("should_refine")) and bool(analysis.get("refine_question"))
 
+    print("ANALYSIS:", analysis)
+    print("STATE:", state)
 
     def should_search(state):
         return (
