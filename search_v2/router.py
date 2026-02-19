@@ -53,11 +53,6 @@ async def analyze_v2(data: dict):
         "state": state
     }
 
-
-
-print("ANALYSIS:", analysis)
-print("STATE:", state)
-
 def should_refine(state):
     if state.get("refinement_done"):
         return False
