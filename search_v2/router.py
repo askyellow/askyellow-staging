@@ -15,45 +15,60 @@ async def analyze_v2(data: dict):
     state = get_or_create_state(session_id)
     state = merge_analysis_into_state(state, analysis)
 
-
-    def should_refine(state, analysis):
-        # refinement alleen vóór eerste search
-        if state.get("refinement_done"):
-            return False
-
-        # alleen als we al basis hebben
-        if state.get("intent") != "search":
-            return False
-        if not state.get("category"):
-            return False
-        if state["constraints"].get("price_max") is None:
-            return False
-
-        # geen refinement op negatieve antwoorden
-        if analysis.get("is_negative"):
-            return False
-
-        return bool(analysis.get("should_refine")) and bool(analysis.get("refine_question"))
-
     print("ANALYSIS:", analysis)
     print("STATE:", state)
 
-    def should_search(state):
-        return (
-            state["intent"] == "search"
-            and state["category"] is not None
-            and state["constraints"]["price_max"] is not None
-        )
+    # 🔥 REFINEMENT CHECK
+    if should_refine(state):
+        question = ai_generate_refinement_question(state)
+        state["refinement_done"] = True
+        return {
+            "action": "ask",
+            "question": question,
+            "state": state
+        }
 
-    if should_search(state):
+    # 🔥 SEARCH CHECK
+    if (
+        state.get("intent") in ["search", "search_product"]
+        and state.get("category")
+        and state["constraints"].get("price_max") is not None
+    ):
         return {
             "action": "search",
             "state": state
         }
-    else:
+
+    # 🔥 FALLBACKS
+    if not state.get("category"):
         return {
             "action": "ask",
-            "question": "Wat is je maximale budget?",
+            "question": "Waar ben je naar op zoek?",
             "state": state
         }
 
+    return {
+        "action": "ask",
+        "question": "Wat is je maximale budget?",
+        "state": state
+    }
+
+
+
+print("ANALYSIS:", analysis)
+print("STATE:", state)
+
+def should_refine(state):
+    if state.get("refinement_done"):
+        return False
+
+    if state.get("intent") not in ["search", "search_product"]:
+        return False
+
+    if not state.get("category"):
+        return False
+
+    if state["constraints"].get("price_max") is None:
+        return False
+
+    return True
