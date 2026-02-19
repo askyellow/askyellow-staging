@@ -49,3 +49,27 @@ def ai_analyze_input(user_input: str):
     content = re.sub(r"```", "", content).strip()
 
     return json.loads(content)
+
+def ai_generate_refinement_question(state: dict) -> str:
+    prompt = f"""
+Je bent een slimme e-commerce assistent.
+
+De gebruiker zoekt naar:
+Categorie: {state.get("category")}
+Maximale prijs: {state["constraints"].get("price_max")}
+
+Stel EXACT 1 korte, natuurlijke vervolgvraag
+die de zoekresultaten significant verfijnt.
+
+Vraag niet opnieuw naar budget.
+Geen uitleg.
+Alleen de vraag.
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3
+    )
+
+    return response.choices[0].message.content.strip()
