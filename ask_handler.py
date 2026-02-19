@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, HTTPException
 
 from db import get_db_conn
-from chat_shared import get_auth_user_from_session, store_message_pair
+from chat_shared import get_auth_user_from_session, store_message_pair, get_history_for_model
 from intent import detect_intent
 from core.time_context import build_time_context
 
@@ -111,6 +111,14 @@ async def ask(request: Request):
         )
         if "price_max" not in constraints:
             search_state["pending_key"] = "price_max"
+        NEGATIVE_ANSWERS = {"nee", "no", "geen", "maakt niet uit", "nvt", "n.v.t", "whatever"}
+
+        norm = question.lower().strip()
+        if search_state.get("pending_key") and norm in NEGATIVE_ANSWERS:
+            # gebruiker wil dit facet overslaan → vraag volgende
+            logger.info("[SEARCH] skip pending_key", extra={"pending_key": search_state["pending_key"]})
+            search_state["pending_key"] = None
+            search_state["steps"] += 1
 
 
         # 2️⃣ verwerk nieuw antwoord → constraint
@@ -262,31 +270,34 @@ def apply_constraints(products: list, constraints: dict) -> list:
 
     results = products
 
+    # budget eerst
+    if "price_max" in constraints and constraints["price_max"] is not None:
+        results = [p for p in results if (p.get("price") or 999999) <= constraints["price_max"]]
+
+    # overige alleen als key echt bestaat
     for key, value in constraints.items():
-
         if key == "price_max":
-            results = [
-                p for p in results
-                if p.get("price", 999999) <= value
-            ]
             continue
-        
-        def matches(p):
-            # 1️⃣ facets (toekomst)
-            facets = p.get("facets")
-            if isinstance(facets, dict) and key in facets:
-                return facets[key] == value
 
-            # 2️⃣ top-level (huidige mock)
+        def has_key(p):
+            facets = p.get("facets") or {}
+            return (key in facets) or (key in p)
+
+        if not any(has_key(p) for p in results):
+            continue  # skip deze constraint (anders filter je alles weg)
+
+        def matches(p):
+            facets = p.get("facets") or {}
+            if key in facets:
+                return facets[key] == value
             if key in p:
                 return p[key] == value
-
-            # 3️⃣ onbekende key → product blijft (niet uitsluiten)
             return True
 
         results = [p for p in results if matches(p)]
 
     return results
+
 
 
 def extract_constraint_from_answer(question: str, pending_key: str | None):
