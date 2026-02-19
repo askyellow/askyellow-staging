@@ -44,6 +44,7 @@ from chat_shared import (
 )
 from routes.health import router as health_router
 from affiliate_search import router as affiliate_router
+from analyzer import ai_analyze_input
 
 
 app.include_router(health_router, include_in_schema=False)
@@ -52,6 +53,7 @@ app.include_router(image_generate)
 app.include_router(ask_router)
 app.include_router(websearch_router)
 app.include_router(affiliate_router)
+app.include_router(ai_analyze_input)
 
 time_context = build_time_context()
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
