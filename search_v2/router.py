@@ -12,6 +12,9 @@ async def analyze_v2(data: dict):
 
     analysis = ai_analyze_input(query)
 
+    print("ANALYSIS:", analysis)
+    print("STATE:", state)
+
     state = get_or_create_state(session_id)
     state = merge_analysis_into_state(state, analysis)
 
