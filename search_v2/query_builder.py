@@ -50,6 +50,18 @@ Regels:
 - Als is_ready_to_search = false → clarification_question moet gevuld zijn en proposed_query moet null zijn.
 - confidence geeft aan hoe zeker je bent dat de informatie voldoende is om goede producten te tonen.
 - Geen uitleg buiten JSON.
+
+Beoordeel streng.
+
+Als er meerdere productvarianten bestaan die sterk verschillen op basis van gebruikssituatie
+(bijvoorbeeld muur vs plafond, binnen vs buiten, vochtbelasting, ondergrondtype),
+dan is de informatie NIET voldoende.
+
+Wees conservatief:
+Stel liever één gerichte vervolgvraag dan te vroeg producten tonen.
+
+Zet is_ready_to_search alleen op true als een ervaren verkoopmedewerker
+met vertrouwen direct producten zou laten zien.
 """.strip()
 
 
