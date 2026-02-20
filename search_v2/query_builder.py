@@ -23,6 +23,19 @@ Antwoord uitsluitend in JSON met:
 - action: "search" of "clarify"
 - search_query: string of null
 - clarification_question: string of null
+
+Before choosing "search", evaluate whether the essential product-defining attributes are sufficiently clear.
+
+If major variables that significantly influence product type are still unknown,
+choose "clarify" instead of "search".
+
+Examples:
+- For paint: surface type, indoor/outdoor, moisture exposure.
+- For wood: outdoor exposure, soil contact, load-bearing needs.
+- For mattresses: sleeping position.
+- For electronics: compatibility requirements.
+
+Only return "search" if you are confident that the generated search_query will likely return relevant products without major ambiguity.
 """
 
     response = client.chat.completions.create(
