@@ -19,68 +19,71 @@ async def analyze_v2(data: dict):
     print("ANALYSIS:", analysis)
     print("STATE:", state)
 
-    # 🔹 ASSISTED SEARCH CHECK
-    if (
-        state.get("intent") in ["product_search", "assisted_search"]
-        and state.get("category")
-        and state["constraints"].get("price_max") is not None
-    ):
-        return {
-            "action": "search",
-            "state": state
-        }
+    # ===============================
+    # MODE 1 – ASSISTED SEARCH
+    # ===============================
 
+    if state.get("intent") == "assisted_search":
 
+        # als nog geen refinement gedaan → inhoudelijke vraag
+        if not state.get("refinement_done"):
+            question = ai_generate_refinement_question(state)
+            state["refinement_done"] = True
+            return {
+                "action": "ask",
+                "question": question,
+                "state": state
+            }
 
-    if analysis.get("intent") == "product_advice":
-        return {
-            "action": "advice",
-            "question": None,
-            "state": state
-        }
-
-    
-    # 🔥 REFINEMENT CHECK
-    if should_refine(state):
-        question = ai_generate_refinement_question(state)
-        state["refinement_done"] = True
+        # na refinement → wacht op verdere specificatie
+        # GEEN automatische budget push
         return {
             "action": "ask",
-            "question": question,
+            "question": ai_generate_refinement_question(state),
             "state": state
         }
 
-    # 🔥 SEARCH CHECK
-    if (
-        state.get("intent") in ["search", "search_product"]
-        and state.get("category")
-        and state["constraints"].get("price_max") is not None
-    ):
-        return {
-            "action": "search",
-            "state": state
-        }
 
-    if state.get("intent") == "assisted_search" and state["constraints"].get("price_max") is None:
+    # ===============================
+    # MODE 2 – DIRECT PRODUCT SEARCH
+    # ===============================
+
+    if state.get("intent") == "product_search":
+
+        # refinement vóór search indien nuttig
+        if should_refine(state):
+            question = ai_generate_refinement_question(state)
+            state["refinement_done"] = True
+            return {
+                "action": "ask",
+                "question": question,
+                "state": state
+            }
+
+        # als category + budget bekend → search
+        if (
+            state.get("category")
+            and state["constraints"].get("price_max") is not None
+        ):
+            return {
+                "action": "search",
+                "state": state
+            }
+
+        # category ontbreekt
+        if not state.get("category"):
+            return {
+                "action": "ask",
+                "question": "Waar ben je naar op zoek?",
+                "state": state
+            }
+
+        # budget ontbreekt (alleen bij product_search)
         return {
             "action": "ask",
-            "question": "Heb je een richtprijs in gedachten?",
+            "question": "Wat is je maximale budget?",
             "state": state
         }
-
-    # 🔥 FALLBACKS
-    if not state.get("category"):
-        return {
-            "action": "ask",
-            "question": "Waar ben je naar op zoek?",
-            "state": state
-        }
-
-    return {
-        "action": "ask",
-        "question": "Wat is je maximale budget?",
-        "state": state
-    }
 
 def should_refine(state):
     if state.get("refinement_done"):
