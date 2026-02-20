@@ -4,16 +4,19 @@ from typing import Dict, Any
 # Simpele in-memory store (later vervangen door Redis of DB)
 SEARCH_STATES: Dict[str, Dict[str, Any]] = {}
 
-# simpele in-memory opslag (voor nu)
-
 _conversations = {}
 
-def get_conversation(session_id: str) -> list[str]:
+def get_conversation(session_id: str) -> list[dict]:
     return _conversations.setdefault(session_id, [])
 
-def add_to_conversation(session_id: str, message: str):
-    _conversations.setdefault(session_id, []).append(message)
+def add_message(session_id: str, role: str, content: str):
+    _conversations.setdefault(session_id, []).append({
+        "role": role,
+        "content": content
+    })
 
+def reset_conversation(session_id: str):
+    _conversations[session_id] = []
 
 def get_or_create_state(session_id: str) -> Dict[str, Any]:
     if session_id not in SEARCH_STATES:

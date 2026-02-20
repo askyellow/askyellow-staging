@@ -150,19 +150,13 @@ def _normalize_decision(d: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _conversation_to_text(conversation_history: List[str]) -> str:
-    """
-    Turn list of user messages into a compact transcript.
-    Keep it short and readable for the model.
-    """
+def _conversation_to_text(conversation_history):
     lines = []
-    for i, msg in enumerate(conversation_history[-12:], start=1):  # last 12 turns is plenty
-        msg = (msg or "").strip()
-        if not msg:
-            continue
-        lines.append(f"User {i}: {msg}")
-    return "\n".join(lines).strip()
-
+    for msg in conversation_history[-12:]:
+        role = msg["role"]
+        content = msg["content"]
+        lines.append(f"{role.upper()}: {content}")
+    return "\n".join(lines)
 
 # ----------------------------
 # Main function

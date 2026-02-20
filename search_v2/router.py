@@ -11,31 +11,40 @@ router = APIRouter(prefix="/search_v2", tags=["search_v2"])
 from search_v2.state import get_or_create_state, merge_analysis_into_state
 
 from search_v2.query_builder import ai_build_search_decision
-from search_v2.state import get_conversation, add_to_conversation  # jouw simple store
+from search_v2.state import get_conversation, add_message
 
 @router.post("/analyze")
 async def analyze_v2(data: dict):
     session_id = data.get("session_id", "demo")
     query = (data.get("query") or "").strip()
 
-    add_to_conversation(session_id, query)
-    convo = get_conversation(session_id)
+    # 1️⃣ User message opslaan
+    add_message(session_id, "user", query)
 
-    decision = ai_build_search_decision(convo)
+    # 2️⃣ Volledige conversatie ophalen
+    conversation = get_conversation(session_id)
+
+    # 3️⃣ AI laten beslissen
+    decision = ai_build_search_decision(conversation)
 
     if not decision["is_ready_to_search"]:
+        # 4️⃣ Assistant vraag opslaan
+        add_message(session_id, "assistant", decision["clarification_question"])
+
         return {
             "action": "ask",
             "question": decision["clarification_question"],
+            "confidence": decision["confidence"]
         }
+
+    # 5️⃣ Assistant search-zin opslaan
+    add_message(session_id, "assistant", decision["proposed_query"])
 
     return {
         "action": "search",
         "query": decision["proposed_query"],
-        "confidence": decision["confidence"],
+        "confidence": decision["confidence"]
     }
-
-
     # ===============================
     # ASSISTED MODE
     # ===============================
