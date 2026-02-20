@@ -23,9 +23,19 @@ async def analyze_v2(data: dict):
     # ===============================
     # ASSISTED MODE
     # ===============================
+    
 
     if state.get("intent") == "assisted_search":
 
+        # als category ontbreekt → eerst category vragen
+        if not category:
+            return {
+                "action": "clarify",
+                "reason": "no_category_detected",
+                "state": state
+            }
+
+        # als er nog info ontbreekt → gerichte vraag
         if analysis.get("missing_info"):
             question = ai_generate_targeted_question(
                 state,
@@ -37,13 +47,11 @@ async def analyze_v2(data: dict):
                 "state": state
             }
 
-        # als niets ontbreekt → klaar met adviseren
+        # alleen DAN search
         return {
             "action": "search",
             "state": state
         }
-
-
 
     if state.get("intent") == "product_search":
 
