@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from .analyzer import ai_analyze_input
 from .analyzer import ai_generate_refinement_question
+from .analyzer import ai_generate_targeted_question
 
 router = APIRouter(prefix="/search_v2", tags=["search_v2"])
 
@@ -20,47 +21,43 @@ async def analyze_v2(data: dict):
     print("STATE:", state)
 
     # ===============================
-    # MODE 1 – ASSISTED SEARCH
+    # ASSISTED MODE
     # ===============================
 
     if state.get("intent") == "assisted_search":
 
-        # als nog geen refinement gedaan → inhoudelijke vraag
-        if not state.get("refinement_done"):
-            question = ai_generate_refinement_question(state)
-            state["refinement_done"] = True
+        if analysis.get("missing_info"):
+            question = ai_generate_targeted_question(
+                state,
+                analysis["missing_info"]
+            )
             return {
                 "action": "ask",
                 "question": question,
                 "state": state
             }
 
-        # na refinement → wacht op verdere specificatie
-        # GEEN automatische budget push
+        # als niets ontbreekt → klaar met adviseren
         return {
-            "action": "ask",
-            "question": ai_generate_refinement_question(state),
+            "action": "search",
             "state": state
         }
 
 
-    # ===============================
-    # MODE 2 – DIRECT PRODUCT SEARCH
-    # ===============================
 
     if state.get("intent") == "product_search":
 
-        # refinement vóór search indien nuttig
-        if should_refine(state):
-            question = ai_generate_refinement_question(state)
-            state["refinement_done"] = True
+        if analysis.get("missing_info"):
+            question = ai_generate_targeted_question(
+                state,
+                analysis["missing_info"]
+            )
             return {
                 "action": "ask",
                 "question": question,
                 "state": state
             }
 
-        # als category + budget bekend → search
         if (
             state.get("category")
             and state["constraints"].get("price_max") is not None
@@ -70,7 +67,6 @@ async def analyze_v2(data: dict):
                 "state": state
             }
 
-        # category ontbreekt
         if not state.get("category"):
             return {
                 "action": "ask",
@@ -78,12 +74,12 @@ async def analyze_v2(data: dict):
                 "state": state
             }
 
-        # budget ontbreekt (alleen bij product_search)
         return {
             "action": "ask",
             "question": "Wat is je maximale budget?",
             "state": state
         }
+
 
 def should_refine(state):
     if state.get("refinement_done"):

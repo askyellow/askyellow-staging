@@ -112,3 +112,28 @@ Alleen de vraag.
     )
 
     return response.choices[0].message.content.strip()
+
+def ai_generate_targeted_question(state: dict, missing_info: list) -> str:
+    prompt = f"""
+Je bent een slimme e-commerce assistent.
+
+Huidige categorie: {state.get("category")}
+Huidige bekende informatie: {state.get("constraints")}
+
+De volgende informatie ontbreekt nog:
+{missing_info}
+
+Stel EXACT 1 korte, natuurlijke vraag om dit te verduidelijken.
+Vraag niets wat al bekend is.
+Geen uitleg.
+Alleen de vraag.
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3
+    )
+
+    return response.choices[0].message.content.strip()
+
