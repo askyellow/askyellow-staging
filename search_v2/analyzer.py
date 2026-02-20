@@ -32,6 +32,8 @@ Also return:
 Critical:
 - If the conversation is in assisted_search mode, do not switch to product_search unless wants_to_buy_now is true.
 
+When extracting missing_info:
+Do not consider information that is already explicitly mentioned in the user sentence as missing.
 
 Rules:
 - Only consider refinement if category is known AND price_max is known.
@@ -113,21 +115,25 @@ Alleen de vraag.
 
     return response.choices[0].message.content.strip()
 
-def ai_generate_targeted_question(state: dict, missing_info: list) -> str:
+def ai_generate_targeted_question(state: dict, missing_info: list, original_input: str) -> str:
     prompt = f"""
 Je bent een slimme e-commerce assistent.
 
+Originele vraag van de gebruiker:
+"{original_input}"
+
 Huidige categorie: {state.get("category")}
-Huidige bekende informatie: {state.get("constraints")}
+Bekende informatie: {state.get("constraints")}
+Ontbrekende informatie: {missing_info}
 
-De volgende informatie ontbreekt nog:
-{missing_info}
-
-Stel EXACT 1 korte, natuurlijke vraag om dit te verduidelijken.
-Vraag niets wat al bekend is.
-Geen uitleg.
-Alleen de vraag.
+Belangrijk:
+- Stel GEEN vraag over iets dat al expliciet in de originele vraag staat.
+- Herhaal geen gebruik of toepassing als die al genoemd is.
+- Stel EXACT 1 korte, natuurlijke vraag over de belangrijkste ontbrekende eigenschap.
+- Geen uitleg.
+- Alleen de vraag.
 """
+
 
     response = client.chat.completions.create(
         model="gpt-4.1-mini",

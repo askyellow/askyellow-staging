@@ -39,7 +39,8 @@ async def analyze_v2(data: dict):
         if analysis.get("missing_info"):
             question = ai_generate_targeted_question(
                 state,
-                analysis["missing_info"]
+                analysis["missing_info"],
+                query
             )
             return {
                 "action": "ask",
@@ -66,7 +67,8 @@ async def analyze_v2(data: dict):
         if analysis.get("missing_info"):
             question = ai_generate_targeted_question(
                 state,
-                analysis["missing_info"]
+                analysis["missing_info"],
+                query
             )
             return {
                 "action": "ask",
