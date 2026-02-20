@@ -56,6 +56,7 @@ Beoordeel streng.
 Als er meerdere productvarianten bestaan die sterk verschillen op basis van gebruikssituatie
 (bijvoorbeeld muur vs plafond, binnen vs buiten, vochtbelasting, ondergrondtype),
 dan is de informatie NIET voldoende.
+Binnen één categorie kunnen meerdere wezenlijk verschillende producttypes bestaan.
 
 Wees conservatief:
 Stel liever één gerichte vervolgvraag dan te vroeg producten tonen.
