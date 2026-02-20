@@ -10,29 +10,30 @@ router = APIRouter(prefix="/search_v2", tags=["search_v2"])
 
 from search_v2.state import get_or_create_state, merge_analysis_into_state
 
+from search_v2.query_builder import ai_build_search_decision
+from search_v2.state import get_conversation, add_to_conversation  # jouw simple store
+
 @router.post("/analyze")
 async def analyze_v2(data: dict):
     session_id = data.get("session_id", "demo")
-    query = data.get("query", "")
+    query = (data.get("query") or "").strip()
 
-    state = get_or_create_state(session_id)
-    analysis = ai_analyze_input(query, state)
-    state = merge_analysis_into_state(state, analysis)
+    add_to_conversation(session_id, query)
+    convo = get_conversation(session_id)
 
+    decision = ai_build_search_decision(convo)
 
-    print("ANALYSIS:", analysis)
-    print("STATE:", state)
+    if not decision["is_ready_to_search"]:
+        return {
+            "action": "ask",
+            "question": decision["clarification_question"],
+        }
 
-    conversation = get_conversation(session_id)
-    conversation.append(query)
-
-    decision = ai_build_search_decision(conversation)
-
-    if decision["action"] == "clarify":
-        return {"action": "ask", "question": decision["clarification_question"]}
-
-    if decision["action"] == "search":
-        return {"action": "search", "query": decision["search_query"]}
+    return {
+        "action": "search",
+        "query": decision["proposed_query"],
+        "confidence": decision["confidence"],
+    }
 
 
     # ===============================

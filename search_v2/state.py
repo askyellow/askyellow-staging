@@ -1,3 +1,4 @@
+# state.py
 from typing import Dict, Any
 
 # Simpele in-memory store (later vervangen door Redis of DB)
