@@ -20,14 +20,16 @@ async def analyze_v2(data: dict):
     print("STATE:", state)
 
     # 🔹 ASSISTED SEARCH CHECK
-    if state.get("intent") == "assisted_search":
-        question = ai_generate_refinement_question(state)
-        state["refinement_done"] = True
+    if (
+        state.get("intent") in ["product_search", "assisted_search"]
+        and state.get("category")
+        and state["constraints"].get("price_max") is not None
+    ):
         return {
-            "action": "ask",
-            "question": question,
+            "action": "search",
             "state": state
         }
+
 
 
     if analysis.get("intent") == "product_advice":
@@ -56,6 +58,13 @@ async def analyze_v2(data: dict):
     ):
         return {
             "action": "search",
+            "state": state
+        }
+
+    if state.get("intent") == "assisted_search" and state["constraints"].get("price_max") is None:
+        return {
+            "action": "ask",
+            "question": "Heb je een richtprijs in gedachten?",
             "state": state
         }
 
