@@ -28,12 +28,13 @@ async def analyze_v2(data: dict):
     if state.get("intent") == "assisted_search":
 
         # als category ontbreekt → eerst category vragen
-        if not category:
+        if not state.get("category"):
             return {
-                "action": "clarify",
-                "reason": "no_category_detected",
+                "action": "error",
+                "message": "Category detection failed",
                 "state": state
             }
+
 
         # als er nog info ontbreekt → gerichte vraag
         if analysis.get("missing_info"):
