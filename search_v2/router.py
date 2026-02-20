@@ -19,6 +19,17 @@ async def analyze_v2(data: dict):
     print("ANALYSIS:", analysis)
     print("STATE:", state)
 
+    # 🔹 ASSISTED SEARCH CHECK
+    if state.get("intent") == "assisted_search":
+        question = ai_generate_refinement_question(state)
+        state["refinement_done"] = True
+        return {
+            "action": "ask",
+            "question": question,
+            "state": state
+        }
+
+
     if analysis.get("intent") == "product_advice":
         return {
             "action": "advice",
@@ -26,6 +37,7 @@ async def analyze_v2(data: dict):
             "state": state
         }
 
+    
     # 🔥 REFINEMENT CHECK
     if should_refine(state):
         question = ai_generate_refinement_question(state)
