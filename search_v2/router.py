@@ -52,7 +52,8 @@ async def analyze_v2(data: dict):
         # Blijf inhoudelijk doorvragen
         question = ai_generate_targeted_question(
             state,
-            ["specifieke toepassing of eigenschappen"]
+            ["specifieke toepassing of eigenschappen"],
+            query
         )
 
         return {
