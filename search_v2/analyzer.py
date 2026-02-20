@@ -34,8 +34,21 @@ Rules:
 
 intent can be:
 - product_search (clear buying intent)
-- product_advice (needs recommendation/explanation)
+- assisted_search (user asks which type of product they need before buying)
 - general_question
+
+Classify as assisted_search when:
+- the user asks which type, variant or specification they should choose
+- the user seeks guidance before selecting a product
+
+Examples:
+- "wat voor verf moet ik gebruiken"
+- "welke boormachine heb ik nodig"
+- "wat voor matras past bij mij"
+
+Do not classify based on product name.
+Classify based on intent pattern.
+
 """
 
 def ai_analyze_input(user_input: str):
@@ -62,9 +75,6 @@ Je bent een slimme e-commerce assistent.
 De gebruiker zoekt naar:
 Categorie: {state.get("category")}
 Maximale prijs: {state["constraints"].get("price_max")}
-
-If the user is asking what type of product they need or seeking guidance, classify as product_advice.
-Only classify as product_search if they are clearly searching to buy.
 
 Stel EXACT 1 korte, natuurlijke vervolgvraag
 die de zoekresultaten significant verfijnt.
