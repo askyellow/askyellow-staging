@@ -3,7 +3,7 @@ from .analyzer import ai_analyze_input
 from .analyzer import ai_generate_refinement_question
 from .analyzer import ai_generate_targeted_question
 from search_v2.query_builder import ai_build_search_decision
-from search_v2.state import get_conversation, add_to_conversation
+from search_v2.state import get_conversation, add_message
 
 
 router = APIRouter(prefix="/search_v2", tags=["search_v2"])
