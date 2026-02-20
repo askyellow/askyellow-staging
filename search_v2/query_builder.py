@@ -34,8 +34,8 @@ Belangrijk:
 - Wees natuurlijk en kort in je vraagstelling.
 
 Definieer "voldoende informatie" als:
-De zoekzin is specifiek genoeg dat de kans klein is dat de verkeerde productcategorie of een verkeerd producttype wordt getoond.
-
+De zoekzin is specifiek genoeg dat de kans klein is dat de verkeerde productvariant binnen dezelfde categorie wordt getoond.
+Als meerdere wezenlijk verschillende varianten nog mogelijk zijn, is de informatie NIET voldoende.
 Antwoord uitsluitend in geldig JSON met dit formaat:
 
 {
@@ -59,6 +59,7 @@ dan is de informatie NIET voldoende.
 
 Wees conservatief:
 Stel liever één gerichte vervolgvraag dan te vroeg producten tonen.
+Twijfel betekent niet zoeken.
 
 Zet is_ready_to_search alleen op true als een ervaren verkoopmedewerker
 met vertrouwen direct producten zou laten zien.
