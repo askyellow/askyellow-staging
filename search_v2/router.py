@@ -27,7 +27,7 @@ async def analyze_v2(data: dict):
 
     if state.get("intent") == "assisted_search":
 
-        # als category ontbreekt → eerst category vragen
+        # Category moet bestaan
         if not state.get("category"):
             return {
                 "action": "error",
@@ -35,8 +35,7 @@ async def analyze_v2(data: dict):
                 "state": state
             }
 
-
-        # als er nog info ontbreekt → gerichte vraag
+        # Als er nog informatie ontbreekt → gerichte vraag
         if analysis.get("missing_info"):
             question = ai_generate_targeted_question(
                 state,
@@ -48,11 +47,19 @@ async def analyze_v2(data: dict):
                 "state": state
             }
 
-        # alleen DAN search
+        # GEEN automatische search in assisted mode
+        # Blijf inhoudelijk doorvragen
+        question = ai_generate_targeted_question(
+            state,
+            ["specifieke toepassing of eigenschappen"]
+        )
+
         return {
-            "action": "search",
+            "action": "ask",
+            "question": question,
             "state": state
         }
+
 
     if state.get("intent") == "product_search":
 
