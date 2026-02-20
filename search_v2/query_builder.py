@@ -51,6 +51,12 @@ Regels:
 - confidence geeft aan hoe zeker je bent dat de informatie voldoende is om goede producten te tonen.
 - Geen uitleg buiten JSON.
 
+Voeg ook toe:
+"response_mode": "advice" of "search"
+
+Regels:
+- Gebruik "advice" als de gebruiker uitleg of aanbeveling vraagt.
+- Gebruik "search" als de gebruiker actief producten wil bekijken, vergelijken of kopen.
 Beoordeel streng.
 
 Als er meerdere productvarianten bestaan die sterk verschillen op basis van gebruikssituatie
@@ -102,10 +108,13 @@ def _normalize_decision(d: Dict[str, Any]) -> Dict[str, Any]:
     Validate required keys, types, and contract invariants.
     Raises ValueError if not valid.
     """
-    required = {"proposed_query", "is_ready_to_search", "confidence", "clarification_question"}
+    required = {"proposed_query", "is_ready_to_search", "confidence", "clarification_question", "response_mode"}
     missing = required - set(d.keys())
     if missing:
         raise ValueError(f"Missing keys: {sorted(missing)}")
+    
+    if d["response_mode"] not in ["advice", "search"]:
+        raise ValueError("response_mode must be 'advice' or 'search'")
 
     is_ready = d["is_ready_to_search"]
     if not isinstance(is_ready, bool):
@@ -149,6 +158,8 @@ def _normalize_decision(d: Dict[str, Any]) -> Dict[str, Any]:
         "is_ready_to_search": is_ready,
         "confidence": conf,
         "clarification_question": cq,
+        "response_mode": d["response_mode"]
+
     }
 
 
@@ -223,4 +234,6 @@ Geef nu ALLEEN geldig JSON dat exact voldoet aan het schema en de regels. Geen e
         "is_ready_to_search": False,
         "confidence": 0.0,
         "clarification_question": "Kun je één detail toevoegen zodat ik zeker weet welk type je bedoelt?",
+        "response_mode": "advice"
+
     }
