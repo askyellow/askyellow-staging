@@ -35,6 +35,11 @@ Critical:
 When extracting missing_info:
 Do not consider information that is already explicitly mentioned in the user sentence as missing.
 
+Also infer implicit environment constraints when obvious.
+Examples:
+- badkamer, woonkamer, slaapkamer → environment: indoor
+- tuin, plantenbak, terras → environment: outdoor
+
 Rules:
 - Only consider refinement if category is known AND price_max is known.
 - Ask about ONE high-impact attribute (e.g. "elektrisch of niet?" for fatbike, "stoom of droog?" for strijkijzer).
