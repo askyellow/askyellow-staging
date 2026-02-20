@@ -20,8 +20,19 @@ def get_or_create_state(session_id: str) -> Dict[str, Any]:
 
 def merge_analysis_into_state(state: Dict[str, Any], analysis: Dict[str, Any]):
     # Intent
-    if analysis.get("intent"):
-        state["intent"] = analysis["intent"]
+    # Intent (met assisted lock)
+    incoming_intent = analysis.get("intent")
+
+    if incoming_intent:
+        # Als we al in assisted zitten: alleen switchen als analyzer expliciet zegt "wants_to_buy_now"
+        if state.get("intent") == "assisted_search":
+            if analysis.get("wants_to_buy_now") is True:
+                state["intent"] = incoming_intent
+            else:
+                # blijf in assisted_search
+                pass
+        else:
+            state["intent"] = incoming_intent
 
     # Category
     if analysis.get("category"):

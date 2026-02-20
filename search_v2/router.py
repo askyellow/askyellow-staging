@@ -11,10 +11,10 @@ async def analyze_v2(data: dict):
     session_id = data.get("session_id", "demo")
     query = data.get("query", "")
 
-    analysis = ai_analyze_input(query)
-
     state = get_or_create_state(session_id)
+    analysis = ai_analyze_input(query, state)
     state = merge_analysis_into_state(state, analysis)
+
 
     print("ANALYSIS:", analysis)
     print("STATE:", state)

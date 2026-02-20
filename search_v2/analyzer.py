@@ -25,6 +25,13 @@ Rules:
 Also return:
 - should_refine (boolean): true only if ONE extra question would significantly narrow results.
 - refine_question (string or null): exactly 1 short Dutch question if should_refine is true, otherwise null.
+Also return:
+- wants_to_buy_now (boolean): true only if the user clearly wants to buy/shop right now (asking for links/products/prices, "ik zoek", "kopen", "bestellen", etc.). Otherwise false.
+- budget_style (string or null): set to "low" when user says things like "zo goedkoop mogelijk", "goedkoop", "budget", "laagste prijs". Otherwise null.
+
+Critical:
+- If the conversation is in assisted_search mode, do not switch to product_search unless wants_to_buy_now is true.
+
 
 Rules:
 - Only consider refinement if category is known AND price_max is known.
@@ -51,12 +58,25 @@ Classify based on intent pattern.
 
 """
 
-def ai_analyze_input(user_input: str):
+def ai_analyze_input(user_input: str, state: dict | None = None):
+    context = ""
+
+    if state:
+        context = f"""
+Huidige zoekstate:
+intent: {state.get("intent")}
+category: {state.get("category")}
+constraints: {state.get("constraints")}
+refinement_done: {state.get("refinement_done")}
+"""
+
+    user_message = context + "\nLaatste input:\n" + user_input
+
     response = client.chat.completions.create(
         model="gpt-4.1-mini",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_input}
+            {"role": "user", "content": user_message}
         ],
         temperature=0
     )
@@ -67,6 +87,7 @@ def ai_analyze_input(user_input: str):
     content = re.sub(r"```", "", content).strip()
 
     return json.loads(content)
+
 
 def ai_generate_refinement_question(state: dict) -> str:
     prompt = f"""
