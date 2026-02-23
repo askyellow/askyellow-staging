@@ -1,7 +1,7 @@
 from fastapi import APIRouter
-from .analyzer import ai_analyze_input
-from .analyzer import ai_generate_refinement_question
-from .analyzer import ai_generate_targeted_question
+from search_v2.analyzer import ai_analyze_input
+from search_v2.analyzer import ai_generate_refinement_question
+from search_v2.analyzer import ai_generate_targeted_question
 from search_v2.query_builder import ai_build_search_decision
 from search_v2.state import get_conversation, add_message
 from search_v2.search_log_service import log_search_to_db
@@ -106,7 +106,8 @@ async def analyze_v2(data: dict):
                 None
             ))
 
-            inserted_id = cur.fetchone()[0]
+            row = cur.fetchone()
+            inserted_id = row["id"]            
             conn.commit()
             cur.close()
             conn.close()
