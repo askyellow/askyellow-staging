@@ -4,7 +4,10 @@ from .analyzer import ai_generate_refinement_question
 from .analyzer import ai_generate_targeted_question
 from search_v2.query_builder import ai_build_search_decision
 from search_v2.state import get_conversation, add_message
-
+from search_v2.search_logger import log_search_event
+from psycopg2.extras import Json
+from db import get_db_conn
+import traceback
 
 router = APIRouter(prefix="/search_v2", tags=["search_v2"])
 
@@ -46,7 +49,7 @@ async def analyze_v2(data: dict):
 
     # 3️⃣ AI beslissing laten maken
     decision = ai_build_search_decision(conversation)
-
+    
     # 4️⃣ Nog niet klaar → vraag stellen
     if not decision["is_ready_to_search"]:
         add_message(session_id, "assistant", decision["clarification_question"])
@@ -71,89 +74,60 @@ async def analyze_v2(data: dict):
     if decision["response_mode"] == "search":
         add_message(session_id, "assistant", decision["proposed_query"])
 
+         # ==============================
+    # 🗄 SEARCH V2 LOGGING
+    # ==============================
+        try:
+            conn = get_db_conn()
+            cur = conn.cursor()
+
+            cur.execute("""
+                INSERT INTO search_logs
+                (
+                    session_id,
+                    user_input,
+                    mode,
+                    intent,
+                    constraints_json,
+                    steps,
+                    pending_key,
+                    results_count
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (
+                session_id,
+                query,
+                "search_v2",
+                decision.get("intent"),
+                Json(decision),
+                len(conversation),
+                None,
+                None
+            ))
+
+            inserted_id = cur.fetchone()[0]
+            conn.commit()
+            cur.close()
+            conn.close()
+
+            print(f"[SEARCH_V2 LOGGED] ID={inserted_id}")
+
+        except Exception as e:
+            print("[SEARCH_V2 LOGGING FAILED]", e)
+            print(traceback.format_exc())
+
         return {
             "action": "search",
             "query": decision["proposed_query"],
             "confidence": decision["confidence"]
         }
-    # ===============================
-    # ASSISTED MODE
-    # ===============================
-    
 
-    # if state.get("intent") == "assisted_search":
-
-    #     # Category moet bestaan
-    #     if not state.get("category"):
-    #         return {
-    #             "action": "error",
-    #             "message": "Category detection failed",
-    #             "state": state
-    #         }
-
-    #     # Als er nog informatie ontbreekt → gerichte vraag
-    #     if analysis.get("missing_info"):
-    #         question = ai_generate_targeted_question(
-    #             state,
-    #             analysis["missing_info"],
-    #             query
-    #         )
-    #         return {
-    #             "action": "ask",
-    #             "question": question,
-    #             "state": state
-    #         }
-
-    #     # GEEN automatische search in assisted mode
-    #     # Blijf inhoudelijk doorvragen
-    #     question = ai_generate_targeted_question(
-    #         state,
-    #         ["specifieke toepassing of eigenschappen"],
-    #         query
-    #     )
-
-    #     return {
-    #         "action": "ask",
-    #         "question": question,
-    #         "state": state
-    #     }
-
-
-    # if state.get("intent") == "product_search":
-
-    #     if analysis.get("missing_info"):
-    #         question = ai_generate_targeted_question(
-    #             state,
-    #             analysis["missing_info"],
-    #             query
-    #         )
-    #         return {
-    #             "action": "ask",
-    #             "question": question,
-    #             "state": state
-    #         }
-
-    #     if (
-    #         state.get("category")
-    #         and state["constraints"].get("price_max") is not None
-    #     ):
-    #         return {
-    #             "action": "search",
-    #             "state": state
-    #         }
-
-    #     if not state.get("category"):
-    #         return {
-    #             "action": "ask",
-    #             "question": "Waar ben je naar op zoek?",
-    #             "state": state
-    #         }
-
-    #     return {
-    #         "action": "ask",
-    #         "question": "Wat is je maximale budget?",
-    #         "state": state
-    #     }
+    return {
+        "action": "search",
+        "query": decision["proposed_query"],
+        "confidence": decision["confidence"]
+    }
 
 
 def should_refine(state):
