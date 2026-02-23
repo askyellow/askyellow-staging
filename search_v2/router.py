@@ -8,6 +8,8 @@ from search_v2.search_log_service import log_search_to_db
 from psycopg2.extras import Json
 from db import get_db_conn
 import traceback
+from fastapi.responses import HTMLResponse
+from html import escape
 
 router = APIRouter(prefix="/search_v2", tags=["search_v2"])
 
@@ -139,5 +141,142 @@ def should_refine(state):
 
     return True
 
+@router.get("/admin", response_class=HTMLResponse)
+def admin_search_v2():
+    conn = get_db_conn()
+    cur = conn.cursor()  # bij RealDictCursor werkt fetchall() met dict rows, anders tuples
 
+    # Sessies + aantal berichten + laatste activiteit
+    cur.execute("""
+        SELECT session_id,
+               COUNT(*) AS msg_count,
+               MAX(created_at) AS last_seen
+        FROM search_v2_messages
+        GROUP BY session_id
+        ORDER BY last_seen DESC
+        LIMIT 200
+    """)
+    rows = cur.fetchall()
 
+    cur.close()
+    conn.close()
+
+    # Helper: pak values uit tuple of dict (want jouw cursor kan dicts geven)
+    def getv(r, k, idx):
+        return r[k] if isinstance(r, dict) else r[idx]
+
+    items_html = []
+    for r in rows:
+        session_id = getv(r, "session_id", 0)
+        msg_count = getv(r, "msg_count", 1)
+        last_seen = getv(r, "last_seen", 2)
+
+        items_html.append(
+            f"""
+            <tr>
+              <td><a href="/search_v2/admin/session/{escape(str(session_id))}">{escape(str(session_id))}</a></td>
+              <td>{msg_count}</td>
+              <td>{escape(str(last_seen))}</td>
+            </tr>
+            """
+        )
+
+    html = f"""
+    <html>
+    <head>
+      <meta charset="utf-8" />
+      <title>Search V2 Admin</title>
+      <style>
+        body {{ font-family: Arial, sans-serif; padding: 16px; }}
+        table {{ border-collapse: collapse; width: 100%; }}
+        th, td {{ border: 1px solid #ddd; padding: 8px; }}
+        th {{ background: #f5f5f5; text-align: left; }}
+        a {{ text-decoration: none; }}
+      </style>
+    </head>
+    <body>
+      <h2>Search V2 Admin</h2>
+      <p>Laatste 200 sessies</p>
+      <table>
+        <thead>
+          <tr>
+            <th>session_id</th>
+            <th>messages</th>
+            <th>last_seen</th>
+          </tr>
+        </thead>
+        <tbody>
+          {''.join(items_html) if items_html else '<tr><td colspan="3">Geen sessies gevonden.</td></tr>'}
+        </tbody>
+      </table>
+    </body>
+    </html>
+    """
+    return HTMLResponse(html)
+
+@router.get("/admin/session/{session_id}", response_class=HTMLResponse)
+def admin_search_v2_session(session_id: str):
+    conn = get_db_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT message_order, role, content, created_at
+        FROM search_v2_messages
+        WHERE session_id = %s
+        ORDER BY message_order ASC
+    """, (session_id,))
+    rows = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    def getv(r, k, idx):
+        return r[k] if isinstance(r, dict) else r[idx]
+
+    bubbles = []
+    for r in rows:
+        order_ = getv(r, "message_order", 0)
+        role = getv(r, "role", 1)
+        content = getv(r, "content", 2)
+        created_at = getv(r, "created_at", 3)
+
+        cls = "user" if role == "user" else "assistant"
+        bubbles.append(
+            f"""
+            <div class="msg {cls}">
+              <div class="meta">#{order_} · {escape(str(role))} · {escape(str(created_at))}</div>
+              <div class="text">{escape(str(content)).replace('\\n','<br>')}</div>
+            </div>
+            """
+        )
+
+    html = f"""
+    <html>
+    <head>
+      <meta charset="utf-8" />
+      <title>Search V2 Session</title>
+      <style>
+        body {{ font-family: Arial, sans-serif; padding: 16px; }}
+        .topbar {{ display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }}
+        .msg {{ border: 1px solid #ddd; border-radius: 10px; padding: 10px; margin: 8px 0; }}
+        .msg.user {{ background: #fffbe6; }}
+        .msg.assistant {{ background: #eef6ff; }}
+        .meta {{ font-size: 12px; opacity: 0.7; margin-bottom: 6px; }}
+        .text {{ white-space: normal; line-height: 1.35; }}
+        a {{ text-decoration: none; }}
+        .pill {{ padding: 4px 8px; border: 1px solid #ddd; border-radius: 999px; font-size: 12px; }}
+      </style>
+    </head>
+    <body>
+      <div class="topbar">
+        <a href="/search_v2/admin">← terug</a>
+        <span class="pill">session_id: {escape(session_id)}</span>
+        <span class="pill">messages: {len(rows)}</span>
+      </div>
+
+      <h2>Conversatie</h2>
+      {''.join(bubbles) if bubbles else '<p>Geen berichten gevonden voor deze session_id.</p>'}
+    </body>
+    </html>
+    """
+    return HTMLResponse(html)
