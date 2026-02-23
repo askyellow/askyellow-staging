@@ -18,6 +18,8 @@ from search_v2.state import get_or_create_state, merge_analysis_into_state
 from search_v2.query_builder import ai_build_search_decision
 from search_v2.state import get_conversation, add_message
 
+
+
 def ai_generate_advice(conversation: list[dict]) -> str:
     response = client.chat.completions.create(
         model="gpt-4.1-mini",
@@ -53,6 +55,7 @@ async def analyze_v2(data: dict):
     decision = ai_build_search_decision(conversation)
 
        # refinement guard
+    state = get_or_create_state(session_id)
     category = state.get("category")
     refinement_depth = len([m for m in conversation if m["role"] == "assistant"])
 
