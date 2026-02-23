@@ -52,7 +52,8 @@ async def analyze_v2(data: dict):
     # 3️⃣ AI beslissing laten maken
     decision = ai_build_search_decision(conversation)
 
-    category = detect_category(query)
+       # refinement guard
+    category = state.get("category")
     refinement_depth = len([m for m in conversation if m["role"] == "assistant"])
 
     MIN_REFINEMENTS = {
@@ -62,10 +63,11 @@ async def analyze_v2(data: dict):
     }
 
     required = MIN_REFINEMENTS.get(category, 1)
+    state = get_or_create_state(session_id)
 
     if decision["response_mode"] == "search" and refinement_depth < required:
         decision["response_mode"] = "ask"
-        decision["clarification_question"] = ai_generate_refinement_question(...)
+        decision["clarification_question"] = ai_generate_refinement_question(state)
     
     # 4️⃣ Nog niet klaar → vraag stellen
     if not decision["is_ready_to_search"]:

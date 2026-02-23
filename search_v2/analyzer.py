@@ -95,14 +95,19 @@ refinement_done: {state.get("refinement_done")}
 
     return json.loads(content)
 
+def ai_generate_refinement_question(state: dict | None) -> str:
+    if not isinstance(state, dict):
+        return "Kun je iets meer details geven zodat ik beter kan helpen?"
 
-def ai_generate_refinement_question(state: dict) -> str:
+    category = state.get("category")
+    price_max = state.get("constraints", {}).get("price_max")
+
     prompt = f"""
 Je bent een slimme e-commerce assistent.
 
 De gebruiker zoekt naar:
-Categorie: {state.get("category")}
-Maximale prijs: {state["constraints"].get("price_max")}
+Categorie: {category}
+Maximale prijs: {price_max}
 
 Stel EXACT 1 korte, natuurlijke vervolgvraag
 die de zoekresultaten significant verfijnt.
