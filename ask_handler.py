@@ -18,7 +18,7 @@ from affiliate_mock import load_mock_affiliate_products
 import logging
 import re
 import json
-from psycopg.types.json import Json
+from psycopg2.extras import Json
 
 logger = logging.getLogger(__name__)
 
