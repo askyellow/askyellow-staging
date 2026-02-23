@@ -4,7 +4,7 @@ from .analyzer import ai_generate_refinement_question
 from .analyzer import ai_generate_targeted_question
 from search_v2.query_builder import ai_build_search_decision
 from search_v2.state import get_conversation, add_message
-from search_v2.search_logger import log_search_event
+from search_v2.search_log_service import log_search_to_db
 from psycopg2.extras import Json
 from db import get_db_conn
 import traceback
