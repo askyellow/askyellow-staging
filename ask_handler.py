@@ -225,12 +225,19 @@ async def ask(request: Request):
                 len(payload.get("affiliate_results", []))
             ))
 
+            inserted_id = cur.fetchone()[0]
             conn.commit()
+            cur.close()
             conn.close()
 
-        except Exception as e:
-            logger.warning(f"[SEARCH LOGGING FAILED] {e}")
+            logger.info("[SEARCH LOG INSERTED]", extra={"search_log_id": inserted_id, "session_id": session_id})
 
+            # optioneel: zet hem tijdelijk in response meta zodat jij meteen ziet dat insert gebeurt
+            payload.setdefault("meta", {})
+            payload["meta"]["search_log_id"] = inserted_id
+        except Exception as e:
+            logger.error("[SEARCH LOGGING FAILED] " + str(e))
+            logger.error(traceback.format_exc())    
         return _response(**payload)
 
     # =========================================================
