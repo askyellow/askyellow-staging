@@ -17,6 +17,8 @@ from affiliate_mock import load_mock_affiliate_products
 
 import logging
 import re
+import json
+from psycopg.types.json import Json
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +188,48 @@ async def ask(request: Request):
             affiliate_results
             or search_state["products"][:3]
         )
+        logger.info("[SEARCH DEBUG]", extra={
+            "constraints": search_state.get("constraints"),
+            "pending_key": search_state.get("pending_key"),
+            "results_count": len(reduced) if 'reduced' in locals() else None
+        })
 
+        # ==============================
+        # 🗄 SEARCH LOGGING TO DB
+        # ==============================
+        try:
+            conn = get_db_conn()
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                INSERT INTO search_logs
+                (
+                    session_id,
+                    user_input,
+                    mode,
+                    intent,
+                    constraints_json,
+                    steps,
+                    pending_key,
+                    results_count
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                session_id,
+                question,
+                mode,
+                intent,
+                Json(search_state.get("constraints", {})),  # 🔥 correct JSONB handling
+                search_state.get("steps"),
+                search_state.get("pending_key"),
+                len(payload.get("affiliate_results", []))
+            ))
+
+            conn.commit()
+            conn.close()
+
+        except Exception as e:
+            logger.warning(f"[SEARCH LOGGING FAILED] {e}")
 
         return _response(**payload)
 
