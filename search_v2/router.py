@@ -10,7 +10,7 @@ from db import get_db_conn
 import traceback
 from fastapi.responses import HTMLResponse
 from html import escape
-
+from category import detect_category
 router = APIRouter(prefix="/search_v2", tags=["search_v2"])
 
 from search_v2.state import get_or_create_state, merge_analysis_into_state
