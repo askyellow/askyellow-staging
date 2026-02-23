@@ -117,18 +117,11 @@ async def analyze_v2(data: dict):
             print("[SEARCH_V2 LOGGING FAILED]", e)
             print(traceback.format_exc())
 
-        return {
-            "action": "search",
-            "query": decision["proposed_query"],
-            "confidence": decision["confidence"]
-        }
-
     return {
         "action": "search",
         "query": decision["proposed_query"],
         "confidence": decision["confidence"]
     }
-
 
 def should_refine(state):
     if state.get("refinement_done"):
