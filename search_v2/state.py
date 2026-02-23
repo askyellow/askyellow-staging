@@ -9,11 +9,40 @@ _conversations = {}
 def get_conversation(session_id: str) -> list[dict]:
     return _conversations.setdefault(session_id, [])
 
+from db import get_db_conn
+
 def add_message(session_id: str, role: str, content: str):
-    _conversations.setdefault(session_id, []).append({
+    conversation = _conversations.setdefault(session_id, [])
+
+    message_order = len(conversation) + 1
+
+    conversation.append({
         "role": role,
         "content": content
     })
+
+    # 🔥 Persist to DB
+    try:
+        conn = get_db_conn()
+        cur = conn.cursor()
+
+        cur.execute("""
+            INSERT INTO search_v2_messages
+            (session_id, message_order, role, content)
+            VALUES (%s, %s, %s, %s)
+        """, (
+            session_id,
+            message_order,
+            role,
+            content
+        ))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+    except Exception as e:
+        print("[MESSAGE LOG FAILED]", e)
 
 def reset_conversation(session_id: str):
     _conversations[session_id] = []
