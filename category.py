@@ -1,3 +1,26 @@
+ALLOWED_CATEGORIES = {
+    "huishoudelijk",
+    "beeld_en_geluid",
+    "sport",
+    "gaming",
+    "mobiliteit",
+    "gereedschap",
+    "mode",
+    "beauty_verzorging",
+    "algemeen",
+}
+
+def normalize_category(ai_category: str | None) -> str | None:
+    if not ai_category:
+        return None
+
+    cat = ai_category.strip().lower()
+
+    if cat in ALLOWED_CATEGORIES:
+        return cat
+
+    return None
+
 def detect_category(question: str) -> str | None:
     """
     Bepaalt de hoofdcategorie van de vraag.
