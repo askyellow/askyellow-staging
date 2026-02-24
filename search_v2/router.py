@@ -54,8 +54,13 @@ async def analyze_v2(data: dict):
     # 3️⃣ AI beslissing laten maken
     decision = ai_build_search_decision(conversation)
 
-       # refinement guard
+    # 🔥 AI → STATE SYNC
     state = get_or_create_state(session_id)
+    analysis = decision.get("analysis")
+    if analysis:
+        state = merge_analysis_into_state(state, analysis)
+
+    # refinement guard
     category = state.get("category")
     refinement_depth = len([m for m in conversation if m["role"] == "assistant"])
 
