@@ -55,6 +55,20 @@ Classify as assisted_search when:
 - the user asks which type, variant or specification they should choose
 - the user seeks guidance before selecting a product
 
+When possible, assign one of the following high-level categories:
+- huishoudelijk
+- beeld_en_geluid
+- sport
+- gaming
+- mobiliteit
+- gereedschap
+- mode
+- beauty_verzorging
+- algemeen
+
+If the product clearly belongs to one of these, choose the closest match.
+Do not invent new category names.
+
 Examples:
 - "wat voor verf moet ik gebruiken"
 - "welke boormachine heb ik nodig"

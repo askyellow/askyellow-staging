@@ -54,11 +54,18 @@ async def analyze_v2(data: dict):
     # 3️⃣ AI beslissing laten maken
     decision = ai_build_search_decision(conversation)
 
-    # 🔥 AI → STATE SYNC
+        # 🔥 AI → STATE SYNC
     state = get_or_create_state(session_id)
-    analysis = decision.get("analysis")
-    if analysis:
-        state = merge_analysis_into_state(state, analysis)
+
+    ai_category = decision.get("analysis", {}).get("category")
+    category = normalize_category(ai_category)
+
+    if not category:
+        # laatste redmiddel
+        category = detect_category(query)
+
+    if category:
+        state["category"] = category
 
     # refinement guard
     category = state.get("category")
@@ -71,7 +78,6 @@ async def analyze_v2(data: dict):
     }
 
     required = MIN_REFINEMENTS.get(category, 1)
-    state = get_or_create_state(session_id)
 
     if decision["response_mode"] == "search" and refinement_depth < required:
         decision["response_mode"] = "ask"
