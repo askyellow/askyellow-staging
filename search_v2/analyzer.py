@@ -35,6 +35,10 @@ Critical:
 When extracting missing_info:
 Do not consider information that is already explicitly mentioned in the user sentence as missing.
 
+If a specific product noun is mentioned, assume the product is known.
+Do not ask which product within the category.
+Instead ask for features, preferences, or constraints.
+
 Also infer implicit environment constraints when obvious.
 Examples:
 - badkamer, woonkamer, slaapkamer → environment: indoor
