@@ -65,23 +65,29 @@ def detect_uploaded_image_operation(text: str) -> str:
     """
     q = (text or "").lower().strip()
 
-    edit_patterns = [
-        r"\bmaak.*karikatuur\b",
-        r"\bmaak.*cartoon\b",
-        r"\bmaak.*strip\b",
-        r"\bmaak.*anime\b",
-        r"\bmaak.*ghibli\b",
-        r"\bverander\b",
-        r"\bbewerk\b",
-        r"\bedit\b",
-        r"\bstijl\b",
-        r"\btransformeer\b",
-        r"\bzet om\b",
-        r"\bmaak hiervan\b",
-        r"\bpas aan\b",
+    edit_keywords = [
+        "karikatuur",
+        "cartoon",
+        "stripstijl",
+        "strip",
+        "anime",
+        "ghibli",
+        "bewerk",
+        "bewerken",
+        "edit",
+        "verander",
+        "veranderen",
+        "transformeer",
+        "transformeren",
+        "stijl",
+        "pas aan",
+        "achtergrond",
+        "maak hiervan",
+        "maak hier",
+        "van maken",
     ]
 
-    if any(re.search(p, q, re.I) for p in edit_patterns):
+    if any(k in q for k in edit_keywords):
         return "edit"
 
     return "analyze"
