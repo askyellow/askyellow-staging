@@ -1,35 +1,30 @@
-from fastapi import APIRouter, Request, HTTPException, Depends, Query
-from fastapi.responses import FileResponse
-from datetime import datetime, timedelta, timezone
-
-import os
-#from core.time_context import build_time_context, greeting
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from chat_engine.db import get_conn
+
 from chat_shared import (
     get_active_conversation,
-    create_new_conversation,
     get_history_for_model,
     store_message_pair,
     get_user_history,
     get_or_create_daily_conversation,
-    get_history_for_model,
     get_auth_user_from_session,
     build_welcome_message,
     get_history_for_llm,
 )
-from image_shared import (
-    wants_image,
-    generate_image,
-    detect_intent,
-    require_auth_session,
-    handle_image_intent,
-    )
-from llm import call_yellowmind_llm
 
+from image_shared import (
+    generate_image,
+    analyze_uploaded_image,
+    edit_uploaded_image,
+    detect_uploaded_image_operation,
+    read_and_validate_upload,
+)
+
+from llm import call_yellowmind_llm
 
 router = APIRouter()
 
-# /chat/history endpoint (voorbeeldstructuur)
+
 @router.get("/chat/history")
 def chat_history(session_id: str):
     conn = get_conn()
@@ -64,7 +59,6 @@ def chat_history(session_id: str):
     }
 
 
-
 @router.post("/chat")
 def chat(payload: dict):
     session_id = payload.get("session_id")
@@ -74,18 +68,18 @@ def chat(payload: dict):
     if not session_id or not message:
         raise HTTPException(status_code=400, detail="session_id of message ontbreekt")
 
-    # 1️⃣ history ophalen
     conn = get_conn()
     history = get_history_for_llm(conn, session_id)
     conn.close()
 
     hints = {}
 
-    # 🔥 2️⃣ IMAGE FLOW
     if wants_image:
-        image_url = generate_image(message)  # jouw image-functie
+        image_url = generate_image(message)
 
-        # opslag (optioneel)
+        if not image_url:
+            raise HTTPException(status_code=500, detail="Afbeelding genereren mislukt")
+
         store_message_pair(session_id, message, "[IMAGE]" + image_url)
 
         return {
@@ -93,7 +87,6 @@ def chat(payload: dict):
             "url": image_url
         }
 
-    # 3️⃣ LLM call
     answer, _ = call_yellowmind_llm(
         question=message,
         language="nl",
@@ -106,10 +99,65 @@ def chat(payload: dict):
     if not answer:
         answer = "⚠️ Ik kreeg geen inhoudelijk antwoord terug."
 
-    # 4️⃣ Opslaan (create gebeurt hier)
     store_message_pair(session_id, message, answer)
 
     return {"reply": answer}
+
+
+@router.post("/chat/image")
+async def chat_with_uploaded_image(
+    session_id: str = Form(...),
+    message: str = Form(""),
+    file: UploadFile = File(...),
+):
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id ontbreekt")
+
+    image_bytes, mime_type = await read_and_validate_upload(file)
+
+    conn = get_conn()
+    history = get_history_for_llm(conn, session_id)
+    conn.close()
+
+    operation = detect_uploaded_image_operation(message)
+
+    user_log_text = f"[USER_IMAGE]{message or 'uploaded image'}"
+
+    if operation == "edit":
+        prompt = (message or "").strip()
+        if not prompt:
+            prompt = "Maak van deze afbeelding een nette karikatuur."
+
+        image_src = edit_uploaded_image(
+            image_bytes=image_bytes,
+            mime_type=mime_type,
+            prompt=prompt,
+        )
+
+        store_message_pair(session_id, user_log_text, f"[IMAGE]{image_src}")
+
+        return {
+            "type": "image",
+            "mode": "edit",
+            "url": image_src,
+            "reply": "Hier is je bewerkte afbeelding."
+        }
+
+    answer = analyze_uploaded_image(
+        image_bytes=image_bytes,
+        mime_type=mime_type,
+        question=message,
+        history=history,
+    )
+
+    store_message_pair(session_id, user_log_text, answer)
+
+    return {
+        "type": "vision",
+        "mode": "analyze",
+        "reply": answer,
+    }
+
 
 @router.post("/chat/reset")
 def reset_chat(payload: dict):
@@ -134,4 +182,3 @@ def reset_chat(payload: dict):
         conn.close()
 
     return {"ok": True}
-

@@ -1,11 +1,6 @@
-# chat_shared.py al deze functies hier woorden gedeelt gebruikt door main.py en chat.py
-
 from typing import List, Tuple, Optional
 
-# Database
 from chat_engine.db import get_conn
-
-# (optioneel, alleen als je ze gebruikt in de helpers)
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from core.time_context import get_logical_date
@@ -20,7 +15,6 @@ def build_welcome_message(first_name: str | None) -> str:
             f"Goed je weer te zien, {first_name} 😊 Vandaag starten we met een frisse chat.",
             f"Nieuwe dag, nieuwe chat {first_name} ✨ Je eerdere gesprekken blijven bewaard.",
             f"Hoi {first_name}! Dit gesprek is nieuw voor vandaag. Wil je verder waar je eerder was? Open dan een eerdere chat.",
-
         ])
     else:
         return random.choice([
@@ -28,7 +22,6 @@ def build_welcome_message(first_name: str | None) -> str:
             "Goed je weer te zien 😊 Vandaag starten we met een frisse chat.",
             "Nieuwe dag, nieuwe chat ✨ Je eerdere gesprekken blijven bewaard.",
             "Hoi! Dit gesprek is nieuw voor vandaag. Wil je verder waar je eerder was? Open dan een eerdere chat.",
-
         ])
 
 
@@ -47,11 +40,11 @@ def get_auth_user_from_session(conn, session_id: str):
         return None
 
     return {
-    "id": row["id"],
-    "first_name": row["first_name"]
-}
+        "id": row["id"],
+        "first_name": row["first_name"]
+    }
 
-# leest huidge converstatie READ ONLY
+
 def get_active_conversation(conn, session_id: str):
     cur = conn.cursor()
     cur.execute(
@@ -69,7 +62,6 @@ def get_active_conversation(conn, session_id: str):
     return row["id"] if row else None
 
 
-# maakt nieuwe coverstatie WRITE ONLY
 def create_new_conversation(conn, session_id: str) -> int:
     cur = conn.cursor()
     cur.execute(
@@ -84,16 +76,11 @@ def create_new_conversation(conn, session_id: str) -> int:
     conn.commit()
     return conv_id
 
-#Haalt history op voor ingelogde users op basis van conversation_date.
 
 def get_user_history(conn, user_id: int, day: str | None = None, limit=50):
-    """
-    Haalt history op voor ingelogde users op basis van conversation_date.
-    day = None | 'today' | 'yesterday'
-    """
     cur = conn.cursor()
 
-    today = get_logical_date()  # ✅ Europe/Amsterdam leidend
+    today = get_logical_date()
 
     if day == "today":
         date_filter = "conversation_date = %s"
@@ -125,16 +112,11 @@ def get_user_history(conn, user_id: int, day: str | None = None, limit=50):
 
     return cur.fetchall()
 
-# aanmaken of ophalen dagelijkse converstatie
-def get_or_create_daily_conversation(conn, user_id: int) -> int:
-    """
-    Zorgt dat een user exact 1 conversation per dag heeft.
-    """
-    today = get_logical_date()
 
+def get_or_create_daily_conversation(conn, user_id: int) -> int:
+    today = get_logical_date()
     cur = conn.cursor()
 
-    # 1. Bestaat er al een conversation voor deze user + vandaag?
     cur.execute(
         """
         SELECT id
@@ -151,7 +133,6 @@ def get_or_create_daily_conversation(conn, user_id: int) -> int:
     if row:
         return row["id"]
 
-    # 2. Zo niet → nieuwe conversation maken
     cur.execute(
         """
         INSERT INTO conversations (
@@ -170,10 +151,8 @@ def get_or_create_daily_conversation(conn, user_id: int) -> int:
     conn.commit()
     return conv_id
 
-# haalt bestaande history op READ ONLY    
 
 def get_history_for_model(conn, session_id: str, day: str | None = None, limit=30):
-    # 🔑 ALLEEN guest-flow
     conv_id = get_active_conversation(conn, session_id)
     if not conv_id:
         return None, []
@@ -215,9 +194,6 @@ def get_history_for_model(conn, session_id: str, day: str | None = None, limit=3
     return conv_id, cur.fetchall()
 
 
-
-   
-# slaat alles op de in DB
 def store_message_pair(session_id, user_text, assistant_text):
     conn = get_conn()
     try:
@@ -226,7 +202,6 @@ def store_message_pair(session_id, user_text, assistant_text):
         if user:
             conv_id = get_or_create_daily_conversation(conn, user["id"])
         else:
-            # guest → oud gedrag
             conv_id = get_active_conversation(conn, session_id)
             if not conv_id:
                 conv_id = create_new_conversation(conn, session_id)
@@ -249,7 +224,6 @@ def store_message_pair(session_id, user_text, assistant_text):
             (conv_id, "assistant", assistant_text)
         )
 
-        # last_message_at bijwerken
         cur.execute(
             """
             UPDATE conversations
@@ -263,19 +237,17 @@ def store_message_pair(session_id, user_text, assistant_text):
     finally:
         conn.close()
 
-    # deze functie haalt op voor de gespreksconversatie (Yello terug lezen)   
 
 def get_history_for_llm(conn, session_id: str, limit=30):
     user = get_auth_user_from_session(conn, session_id)
     cur = conn.cursor()
 
     if user:
-        # 1️⃣ haal actieve conversation voor deze user
         cur.execute("""
             SELECT id
             FROM conversations
             WHERE user_id = %s
-            AND ended_at IS NULL
+              AND ended_at IS NULL
             ORDER BY started_at DESC
             LIMIT 1
         """, (user["id"],))
@@ -285,12 +257,10 @@ def get_history_for_llm(conn, session_id: str, limit=30):
 
         conv_id = row["id"]
     else:
-        # guest
         conv_id = get_active_conversation(conn, session_id)
         if not conv_id:
             return []
 
-    # 2️⃣ haal ALLE messages uit die conversation
     cur.execute("""
         SELECT role, content
         FROM messages
@@ -301,10 +271,22 @@ def get_history_for_llm(conn, session_id: str, limit=30):
 
     rows = cur.fetchall()
 
-    # 3️⃣ normaliseer voor LLM
-    return [
-        {"role": r["role"], "content": r["content"]}
-        for r in rows
-        if isinstance(r["content"], str)
-    ]
+    cleaned = []
+    for r in rows:
+        content = r["content"]
 
+        if not isinstance(content, str):
+            continue
+
+        if content.startswith("[IMAGE]"):
+            continue
+
+        if content.startswith("[USER_IMAGE]"):
+            continue
+
+        cleaned.append({
+            "role": r["role"],
+            "content": content
+        })
+
+    return cleaned
